@@ -16,8 +16,17 @@ class ArticleService {
         // Save to Core Data
         await context.perform {
             for articleResponse in articles {
-                let article = Article(context: self.context)
-                article.id = articleResponse.id
+                // Upsert logic: fetch by id
+                let fetchRequest: NSFetchRequest<Article> = Article.fetchRequest()
+                fetchRequest.predicate = NSPredicate(format: "id == %lld", articleResponse.id)
+                fetchRequest.fetchLimit = 1
+                let article: Article
+                if let existing = try? self.context.fetch(fetchRequest).first {
+                    article = existing
+                } else {
+                    article = Article(context: self.context)
+                    article.id = articleResponse.id
+                }
                 article.userId = articleResponse.userId
                 article.url = articleResponse.url
                 article.title = articleResponse.title
@@ -40,10 +49,32 @@ class ArticleService {
             try? self.context.save()
         }
     }
+    
+    // Fetch archived articles with pagination
+    struct ArchivedArticlesResponse: Decodable {
+        let data: [ArticleResponse]
+        let currentPage: Int
+        let perPage: Int
+        let lastPage: Int
+        let total: Int
+        // Add other fields as needed
+        enum CodingKeys: String, CodingKey {
+            case data
+            case currentPage = "current_page"
+            case perPage = "per_page"
+            case lastPage = "last_page"
+            case total
+        }
+    }
+
+    func fetchArchivedArticles(page: Int = 1, pageSize: Int = 20) async throws -> ArchivedArticlesResponse {
+        let endpoint = "/api/articles/archived?page=\(page)&pageSize=\(pageSize)"
+        return try await apiService.fetch(endpoint)
+    }
 }
 
 // Response model for decoding JSON
-private struct ArticleResponse: Codable {
+struct ArticleResponse: Codable {
     let id: Int64
     let userId: Int64
     let url: String

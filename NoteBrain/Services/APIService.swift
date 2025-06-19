@@ -18,7 +18,7 @@ class APIService {
     
     var apiToken: String? {
         guard let config = try? context.fetch(InstallationConfig.fetchRequest()).first,
-              let token = config.apiToken as? String else {
+              let token = config.apiToken else {
             return nil
         }
         return token
@@ -31,8 +31,7 @@ class APIService {
         }
         
         var request = URLRequest(url: url)
-        print(url)
-        print(apiToken)
+       
         if let token = apiToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
