@@ -56,7 +56,10 @@ struct InstallationConfigView: View {
                 .padding(.vertical)
                 
                 Button(action: {
-                    // Settings are saved automatically, just trigger navigation
+                    // Force save the configuration and update the configured state
+                    print("Continue button tapped - forcing save...")
+                    viewModel.forceSave()
+                    print("Force save completed - isConfigured should be: \(!viewModel.installationURL.isEmpty && !viewModel.apiToken.isEmpty)")
                 }) {
                     Text("Continue")
                         .fontWeight(.semibold)
@@ -66,6 +69,7 @@ struct InstallationConfigView: View {
                         .background(viewModel.installationURL.isEmpty || viewModel.apiToken.isEmpty ? Color.gray : Color.accentColor)
                         .cornerRadius(10)
                 }
+                .disabled(viewModel.installationURL.isEmpty || viewModel.apiToken.isEmpty)
                 
                 .padding(.horizontal)
                 

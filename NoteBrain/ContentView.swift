@@ -299,32 +299,102 @@ struct ContentView: View {
     }
     
     private func clearAndRedownloadArticles() async {
+        // Set flag to prevent sync manager interference
+        ArticleActionSyncManager.shared.setClearingAndRedownloading(true)
+        
+        // Cancel the polling task to prevent interference
+        summarizePollingTask?.cancel()
+        
         // Clear all articles
         let fetchRequest: NSFetchRequest<NSFetchRequestResult> = Article.fetchRequest()
         let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+        deleteRequest.resultType = .resultTypeObjectIDs
+        
         do {
-            try viewContext.execute(deleteRequest)
+            let result = try viewContext.execute(deleteRequest) as? NSBatchDeleteResult
+            let objectIDArray = result?.result as? [NSManagedObjectID] ?? []
+            let changes = [NSDeletedObjectsKey: objectIDArray]
+            NSManagedObjectContext.mergeChanges(fromRemoteContextSave: changes, into: [viewContext])
+            
             try viewContext.save()
             
             // Force a context refresh to ensure deletion is fully committed
             viewContext.refreshAllObjects()
             
-            // Add a small delay to ensure the deletion is fully processed
-            try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+            // Add a longer delay to ensure the deletion is fully processed
+            try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+            
+            // Verify that articles are actually deleted
+            let verifyRequest: NSFetchRequest<Article> = Article.fetchRequest()
+            let remainingArticles = try viewContext.fetch(verifyRequest)
+            if !remainingArticles.isEmpty {
+                // If articles still exist, try a more aggressive deletion
+                for article in remainingArticles {
+                    viewContext.delete(article)
+                }
+                try viewContext.save()
+                viewContext.refreshAllObjects()
+                try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
+            }
         } catch {
             // Handle error silently
         }
         
         // Redownload articles
         await loadArticles()
+        
+        // Final verification: check for duplicates
+        await viewContext.perform {
+            let allArticles = (try? viewContext.fetch(Article.fetchRequest())) ?? []
+            let articleIds = allArticles.map { $0.id }
+            let uniqueIds = Set(articleIds)
+            
+            if articleIds.count != uniqueIds.count {
+                // Remove duplicates by keeping only the first occurrence of each ID
+                var seenIds = Set<Int64>()
+                var articlesToDelete: [Article] = []
+                
+                for article in allArticles {
+                    if seenIds.contains(article.id) {
+                        articlesToDelete.append(article)
+                    } else {
+                        seenIds.insert(article.id)
+                    }
+                }
+                
+                for article in articlesToDelete {
+                    viewContext.delete(article)
+                }
+                
+                try? viewContext.save()
+            }
+        }
+        
+        // Restart the polling task
+        startGlobalSummarizePolling()
+        
+        // Clear the flag to allow normal sync operations
+        ArticleActionSyncManager.shared.setClearingAndRedownloading(false)
     }
     
     private func applyPendingActionsAndRedownload() async {
+        // Set flag to prevent sync manager interference
+        ArticleActionSyncManager.shared.setClearingAndRedownloading(true)
+        
+        // Cancel the polling task to prevent interference
+        summarizePollingTask?.cancel()
+        
         // Apply pending actions first
         ArticleActionSyncManager.shared.triggerSync()
         
+        // Add a delay to ensure actions are processed
+        try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
+        
         // Then clear and redownload
         await clearAndRedownloadArticles()
+        
+        // Clear the flag to allow normal sync operations
+        ArticleActionSyncManager.shared.setClearingAndRedownloading(false)
     }
     
     private func startGlobalSummarizePolling() {

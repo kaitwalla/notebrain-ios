@@ -9,6 +9,7 @@ class ArticleActionSyncManager {
     private let queue = DispatchQueue(label: "ArticleActionSyncMonitor")
     private var isConnected: Bool = false
     private var isSyncing: Bool = false
+    private var isClearingAndRedownloading: Bool = false
     private var context: NSManagedObjectContext {
         PersistenceController.shared.container.viewContext
     }
@@ -36,7 +37,7 @@ class ArticleActionSyncManager {
     }
     
     func triggerSync() {
-        guard !isSyncing else { return }
+        guard !isSyncing && !isClearingAndRedownloading else { return }
         isSyncing = true
         Task {
             // Check what types of actions we have before syncing
@@ -46,8 +47,8 @@ class ArticleActionSyncManager {
             await Self.syncActions(context: context)
             
             // Only fetch articles if there were actions that might have changed article state
-            // For summarize actions, we'll let the polling mechanism handle updates
-            if hasNonSummarizeActions {
+            // and we're not in the middle of clearing and redownloading
+            if hasNonSummarizeActions && !isClearingAndRedownloading {
                 let articleService = ArticleService(context: context)
                 do {
                     try await articleService.fetchArticles()
@@ -94,6 +95,8 @@ class ArticleActionSyncManager {
             return "/api/articles/\(id)/read"
         case "delete":
             return "/api/articles/\(id)"
+        case "delete-summary":
+            return "/api/articles/\(id)/delete-summary"
         case "summarize":
             return "/api/articles/\(id)/summarize"
         default:
@@ -206,5 +209,10 @@ class ArticleActionSyncManager {
         } catch {
             // Handle error silently
         }
+    }
+    
+    // Methods to control clearing and redownloading state
+    func setClearingAndRedownloading(_ clearing: Bool) {
+        isClearingAndRedownloading = clearing
     }
 } 

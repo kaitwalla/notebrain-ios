@@ -72,6 +72,13 @@ struct ArticleDetailView: View {
                     
                 }
                 .padding()
+                if let summary = article.summary, !summary.isEmpty {
+                    Button(action: deleteSummary) {
+                        Image(systemName: "minus.circle")
+                            .foregroundColor(.orange)
+                    }
+                    .padding()
+                }
                 Spacer()
                 Button(action: archiveArticle) {
                     Image(systemName: "archivebox")
@@ -174,6 +181,32 @@ struct ArticleDetailView: View {
         // Reset loading state after a short delay to show the action was processed
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             isSummarizing = false
+        }
+    }
+    
+    private func deleteSummary() {
+        print("Deleting summary for article: \(article.id)")
+        article.summary = nil
+        
+        // Add the sync action asynchronously to avoid deadlock
+        DispatchQueue.global(qos: .background).async {
+            ArticleActionSyncManager.shared.addAction(articleId: self.article.id, actionType: "delete-summary")
+        }
+        
+        do {
+            try viewContext.save()
+            print("Successfully saved context after deleting summary")
+            
+            // Post notification to refresh ContentView
+            NotificationCenter.default.post(name: NSNotification.Name("ArticleUpdated"), object: nil)
+            
+            // Force a UI refresh by updating the selected tab if we're on summary view
+            if selectedTab == 0 {
+                selectedTab = 1 // Switch to full article view
+            }
+        } catch {
+            print("Error saving context: \(error)")
+            // Handle error silently
         }
     }
     

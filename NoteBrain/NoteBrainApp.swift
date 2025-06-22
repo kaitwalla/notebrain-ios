@@ -13,6 +13,7 @@ struct NoteBrainApp: App {
     let persistenceController = PersistenceController.shared
     @StateObject private var configViewModel = InstallationConfigViewModel()
     @StateObject private var webViewSettings = WebViewSettings()
+    @StateObject private var cloudKitSettings = CloudKitSettingsManager.shared
 
     var body: some Scene {
         WindowGroup {
@@ -22,12 +23,18 @@ struct NoteBrainApp: App {
                         .environment(\.managedObjectContext, persistenceController.container.viewContext)
                         .environmentObject(webViewSettings)
                         .environmentObject(configViewModel)
+                        .environmentObject(cloudKitSettings)
                 } else {
                     InstallationConfigView()
                         .environment(\.managedObjectContext, persistenceController.container.viewContext)
                         .environmentObject(webViewSettings)
                         .environmentObject(configViewModel)
+                        .environmentObject(cloudKitSettings)
                 }
+            }
+            .task {
+                // Perform migration from existing data sources
+                await cloudKitSettings.migrateFromCoreDataAndUserDefaults()
             }
         }
     }

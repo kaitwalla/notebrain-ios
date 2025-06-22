@@ -15,6 +15,11 @@ class ArticleService {
         
         // Save to Core Data
         await context.perform {
+            // First, get all existing article IDs to avoid duplicates
+            let existingFetchRequest: NSFetchRequest<Article> = Article.fetchRequest()
+            let existingArticles = (try? self.context.fetch(existingFetchRequest)) ?? []
+            let existingIds = Set(existingArticles.map { $0.id })
+            
             for articleResponse in articles {
                 // Check if article already exists by ID
                 let fetchRequest: NSFetchRequest<Article> = Article.fetchRequest()
@@ -26,9 +31,14 @@ class ArticleService {
                     // Update existing article
                     article = existing
                 } else {
-                    // Create new article
-                    article = Article(context: self.context)
-                    article.id = articleResponse.id
+                    // Create new article only if it doesn't already exist
+                    if !existingIds.contains(articleResponse.id) {
+                        article = Article(context: self.context)
+                        article.id = articleResponse.id
+                    } else {
+                        // Skip this article as it already exists
+                        continue
+                    }
                 }
                 
                 // Update article properties
@@ -51,7 +61,16 @@ class ArticleService {
                 article.updatedAt = articleResponse.updatedAt
             }
             
-            try? self.context.save()
+            // Save all changes at once
+            if self.context.hasChanges {
+                do {
+                    try self.context.save()
+                } catch {
+                    // Try to rollback and save again
+                    self.context.rollback()
+                    try? self.context.save()
+                }
+            }
         }
     }
     

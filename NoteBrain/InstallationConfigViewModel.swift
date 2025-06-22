@@ -2,6 +2,7 @@ import Foundation
 import CoreData
 import os.log
 
+@MainActor
 class InstallationConfigViewModel: ObservableObject {
     @Published var installationURL: String = "" {
         didSet { 
@@ -26,124 +27,54 @@ class InstallationConfigViewModel: ObservableObject {
     private let viewContext: NSManagedObjectContext = PersistenceController.shared.container.viewContext
     private let logger = Logger(subsystem: "com.notebrain", category: "InstallationConfig")
     private var saveWorkItem: DispatchWorkItem?
+    private let cloudKitSettings = CloudKitSettingsManager.shared
     
     init() {
+        // Bind to CloudKit settings manager
+        setupCloudKitBindings()
         self.loadConfiguration()
     }
     
-    func loadConfiguration() {
-        let fetchRequest: NSFetchRequest<InstallationConfig> = InstallationConfig.fetchRequest()
+    private func setupCloudKitBindings() {
+        // Bind CloudKit settings to this view model
+        cloudKitSettings.$installationURL
+            .assign(to: &$installationURL)
         
-        do {
-            let results = try self.viewContext.fetch(fetchRequest)
-            if let config = results.first {
-                self.installationURL = config.installationURL ?? ""
-                self.apiToken = config.apiToken ?? ""
-                self.isConfigured = !self.installationURL.isEmpty && !self.apiToken.isEmpty
-                // Load archivedRetentionDays if present, else default to 30
-                if let days = config.value(forKey: "archivedRetentionDays") as? Int {
-                    self.archivedRetentionDays = days
-                } else {
-                    self.archivedRetentionDays = 30
-                }
-                self.logger.info("Configuration loaded: URL=\(self.installationURL.prefix(10))..., Token=\(self.apiToken.isEmpty ? "empty" : "present")")
-            } else {
-                // No configuration exists, ensure we start fresh
-                self.installationURL = ""
-                self.apiToken = ""
-                self.isConfigured = false
-                self.archivedRetentionDays = 30
-                self.logger.info("No existing configuration found")
-            }
-        } catch {
-            // On error, assume no configuration exists
-            self.isConfigured = false
-            self.archivedRetentionDays = 30
-            self.logger.error("Error loading configuration: \(error.localizedDescription)")
+        cloudKitSettings.$apiToken
+            .assign(to: &$apiToken)
+        
+        cloudKitSettings.$archivedRetentionDays
+            .assign(to: &$archivedRetentionDays)
+        
+        cloudKitSettings.$isConfigured
+            .assign(to: &$isConfigured)
+    }
+    
+    func loadConfiguration() {
+        // The CloudKit settings manager handles loading automatically
+        // This method is kept for backward compatibility and migration
+        self.logger.info("Loading configuration from CloudKit settings manager")
+        
+        // Trigger a migration if needed
+        Task {
+            await cloudKitSettings.migrateFromCoreDataAndUserDefaults()
         }
     }
     
     private func saveConfiguration() {
-        let fetchRequest: NSFetchRequest<InstallationConfig> = InstallationConfig.fetchRequest()
+        // Use CloudKit settings manager for saving
+        cloudKitSettings.installationURL = self.installationURL
+        cloudKitSettings.apiToken = self.apiToken
+        cloudKitSettings.archivedRetentionDays = self.archivedRetentionDays
+        cloudKitSettings.saveSettings()
         
-        do {
-            let results = try self.viewContext.fetch(fetchRequest)
-            let config: InstallationConfig
-            
-            if let existingConfig = results.first {
-                config = existingConfig
-                self.logger.info("Updating existing configuration")
-            } else {
-                config = InstallationConfig(context: self.viewContext)
-                self.logger.info("Creating new configuration")
-            }
-            
-            config.installationURL = self.installationURL
-            config.apiToken = self.apiToken
-            config.setValue(self.archivedRetentionDays, forKey: "archivedRetentionDays")
-            
-            // Verify the values were set correctly
-            self.logger.info("Saving configuration: URL=\(self.installationURL.prefix(10))..., Token=\(self.apiToken.isEmpty ? "empty" : "present"), Days=\(self.archivedRetentionDays)")
-            
-            // Ensure we're on the correct queue for Core Data operations
-            if self.viewContext.concurrencyType == .mainQueueConcurrencyType {
-                try self.viewContext.save()
-            } else {
-                self.viewContext.performAndWait {
-                    do {
-                        try self.viewContext.save()
-                    } catch {
-                        self.logger.error("Error saving on background context: \(error.localizedDescription)")
-                    }
-                }
-            }
-            
-            // Verify the save was successful by checking if the context has changes
-            if self.viewContext.hasChanges {
-                self.logger.warning("Context still has changes after save attempt")
-                // Try to save again
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    self.retrySave()
-                }
-            } else {
-                self.logger.info("Configuration saved successfully")
-            }
-            
-            // Update the state on the main thread
-            DispatchQueue.main.async {
-                self.isConfigured = !self.installationURL.isEmpty && !self.apiToken.isEmpty
-            }
-        } catch {
-            self.logger.error("Error saving configuration: \(error.localizedDescription)")
-            // Don't update isConfigured on error
-        }
-    }
-    
-    private func retrySave() {
-        do {
-            try self.viewContext.save()
-            self.logger.info("Retry save successful")
-        } catch {
-            self.logger.error("Retry save failed: \(error.localizedDescription)")
-        }
+        self.logger.info("Configuration saved via CloudKit settings manager")
     }
     
     func removeConfiguration() {
-        let fetchRequest: NSFetchRequest<InstallationConfig> = InstallationConfig.fetchRequest()
-        do {
-            let results = try self.viewContext.fetch(fetchRequest)
-            for config in results {
-                self.viewContext.delete(config)
-            }
-            try self.viewContext.save()
-            self.logger.info("Configuration removed successfully")
-            DispatchQueue.main.async {
-                self.installationURL = ""
-                self.apiToken = ""
-                self.isConfigured = false
-            }
-        } catch {
-            self.logger.error("Error removing configuration: \(error.localizedDescription)")
+        Task {
+            cloudKitSettings.removeAllSettings()
+            self.logger.info("Configuration removed via CloudKit settings manager")
         }
     }
     
@@ -186,28 +117,16 @@ class InstallationConfigViewModel: ObservableObject {
     }
     
     func verifyConfiguration() {
-        let fetchRequest: NSFetchRequest<InstallationConfig> = InstallationConfig.fetchRequest()
+        self.logger.info("Verifying configuration with CloudKit settings manager")
+        self.logger.info("Current configuration: URL=\(self.installationURL), Token=\(self.apiToken.isEmpty ? "empty" : "present"), Days=\(self.archivedRetentionDays)")
         
-        do {
-            let results = try self.viewContext.fetch(fetchRequest)
-            if let config = results.first {
-                let storedURL = config.installationURL ?? ""
-                let storedToken = config.apiToken ?? ""
-                let storedDays = config.value(forKey: "archivedRetentionDays") as? Int ?? 30
-                
-                self.logger.info("Stored configuration: URL=\(storedURL), Token=\(storedToken.isEmpty ? "empty" : "present"), Days=\(storedDays)")
-                self.logger.info("Current configuration: URL=\(self.installationURL), Token=\(self.apiToken.isEmpty ? "empty" : "present"), Days=\(self.archivedRetentionDays)")
-                
-                if storedURL == self.installationURL && storedToken == self.apiToken && storedDays == self.archivedRetentionDays {
-                    self.logger.info("Configuration verification PASSED - stored and current values match")
-                } else {
-                    self.logger.error("Configuration verification FAILED - stored and current values don't match")
-                }
-            } else {
-                self.logger.warning("No configuration found in Core Data")
-            }
-        } catch {
-            self.logger.error("Error verifying configuration: \(error.localizedDescription)")
+        // Check if CloudKit settings match
+        if cloudKitSettings.installationURL == self.installationURL && 
+           cloudKitSettings.apiToken == self.apiToken && 
+           cloudKitSettings.archivedRetentionDays == self.archivedRetentionDays {
+            self.logger.info("Configuration verification PASSED - CloudKit and local values match")
+        } else {
+            self.logger.error("Configuration verification FAILED - CloudKit and local values don't match")
         }
     }
     

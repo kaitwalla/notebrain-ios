@@ -3,6 +3,7 @@ import CoreData
 
 struct SettingsView: View {
     @EnvironmentObject var viewModel: InstallationConfigViewModel
+    @EnvironmentObject var cloudKitSettings: CloudKitSettingsManager
     @Environment(\.managedObjectContext) private var viewContext
     @EnvironmentObject var webViewSettings: WebViewSettings
     @Environment(\.colorScheme) private var colorScheme
@@ -18,9 +19,18 @@ struct SettingsView: View {
                     SecureField("API Token", text: $viewModel.apiToken)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .autocapitalization(.none)
-                    Text("Settings are saved automatically")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    HStack {
+                        Image(systemName: "icloud")
+                            .foregroundColor(.blue)
+                        Text("Settings sync across all devices")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        if cloudKitSettings.isLoading {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        }
+                    }
                 }
             }
             Section(header: Text("Archive Settings")) {
@@ -71,8 +81,27 @@ struct SettingsView: View {
                     get: { Color(hex: webViewSettings.backgroundColor) ?? (colorScheme == .dark ? Color(.systemGray6) : .white) },
                     set: { webViewSettings.backgroundColor = $0.toHex() ?? (colorScheme == .dark ? "#1c1c1e" : "#fafbfc") }
                 ))
-                Toggle("Dark Mode", isOn: $webViewSettings.useDarkMode)
+                Picker("Dark Mode", selection: $webViewSettings.darkModeOption) {
+                    ForEach(DarkModeOption.allCases, id: \.self) { option in
+                        Text(option.displayName).tag(option)
+                    }
+                }
+                .pickerStyle(MenuPickerStyle())
             }
+            
+            if let lastSync = cloudKitSettings.lastSyncDate {
+                Section(header: Text("Sync Status")) {
+                    HStack {
+                        Image(systemName: "icloud.fill")
+                            .foregroundColor(.green)
+                        Text("Last synced")
+                        Spacer()
+                        Text(lastSync, style: .relative)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            
             Section {
                 Button(role: .destructive) {
                     viewModel.removeConfiguration()
@@ -108,6 +137,27 @@ struct SettingsView: View {
                     viewModel.verifyConfiguration()
                 }
                 .foregroundColor(.orange)
+                
+                Button("Force CloudKit Sync") {
+                    cloudKitSettings.forceSave()
+                }
+                .foregroundColor(.purple)
+                
+                Button("Test CloudKit Connectivity") {
+                    Task {
+                        let isConnected = await cloudKitSettings.testCloudKitConnectivity()
+                        print("CloudKit connectivity: \(isConnected ? "SUCCESS" : "FAILED")")
+                    }
+                }
+                .foregroundColor(.cyan)
+                
+                Button("Test Settings Persistence") {
+                    Task {
+                        let success = await cloudKitSettings.testSettingsPersistence()
+                        print("Settings persistence test: \(success ? "SUCCESS" : "FAILED")")
+                    }
+                }
+                .foregroundColor(.mint)
             }
             #endif
         }

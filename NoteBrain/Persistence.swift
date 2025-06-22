@@ -6,6 +6,7 @@
 //
 
 import CoreData
+import CloudKit
 import os.log
 
 struct PersistenceController {
@@ -39,10 +40,15 @@ struct PersistenceController {
             container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
         }
         
-        // Configure the persistent store
+        // Configure the persistent store with CloudKit sync
         if let storeDescription = container.persistentStoreDescriptions.first {
             storeDescription.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
             storeDescription.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
+            
+            // Enable CloudKit sync
+            storeDescription.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(
+                containerIdentifier: "iCloud.com.notebrain.settings"
+            )
         }
         
         // Add some debugging for the context before setting up the closure
@@ -67,7 +73,7 @@ struct PersistenceController {
                 logger.error("Core Data store loading failed: \(error.localizedDescription)")
                 fatalError("Unresolved error \(error), \(error.userInfo)")
             } else {
-                logger.info("Core Data store loaded successfully")
+                logger.info("Core Data store loaded successfully with CloudKit sync")
             }
         })
         container.viewContext.automaticallyMergesChangesFromParent = true

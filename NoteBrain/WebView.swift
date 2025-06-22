@@ -1,6 +1,7 @@
 import SwiftUI
 import WebKit
 
+@MainActor
 class WebViewSettings: ObservableObject {
     @Published var fontSize: CGFloat = 30 {
         didSet { saveSettings() }
@@ -17,60 +18,73 @@ class WebViewSettings: ObservableObject {
     @Published var lineHeight: CGFloat = 1.7 {
         didSet { saveSettings() }
     }
-    @Published var useDarkMode: Bool = false {
+    @Published var darkModeOption: DarkModeOption = .system {
         didSet { saveSettings() }
     }
     @Published var paragraphSpacing: CGFloat = 1.0 {
         didSet { saveSettings() }
     }
     
-    private let userDefaults = UserDefaults.standard
-    private let fontSizeKey = "WebViewFontSize"
-    private let fontFamilyKey = "WebViewFontFamily"
-    private let textColorKey = "WebViewTextColor"
-    private let backgroundColorKey = "WebViewBackgroundColor"
-    private let lineHeightKey = "WebViewLineHeight"
-    private let useDarkModeKey = "WebViewUseDarkMode"
-    private let paragraphSpacingKey = "WebViewParagraphSpacing"
+    private var cloudKitSettings: CloudKitSettingsManager?
     
     init() {
-        loadSettings()
-        // Force update to new defaults if old values are detected
-        if textColor == "#222222" || backgroundColor == "#fafbfc" {
-            forceUpdateToNewDefaults()
+        // Defer CloudKit setup to avoid actor isolation issues during init
+        Task { @MainActor in
+            await setupCloudKitBindings()
+            loadSettings()
+            // Force update to new defaults if old values are detected
+            if textColor == "#222222" || backgroundColor == "#fafbfc" {
+                forceUpdateToNewDefaults()
+            }
         }
     }
     
-    private func loadSettings() {
-        let savedFontSize = userDefaults.object(forKey: fontSizeKey) as? CGFloat
-        let savedFontFamily = userDefaults.string(forKey: fontFamilyKey)
-        let savedTextColor = userDefaults.string(forKey: textColorKey)
-        let savedBackgroundColor = userDefaults.string(forKey: backgroundColorKey)
-        let savedLineHeight = userDefaults.object(forKey: lineHeightKey) as? CGFloat
-        let savedUseDarkMode = userDefaults.bool(forKey: useDarkModeKey)
-        let savedParagraphSpacing = userDefaults.object(forKey: paragraphSpacingKey) as? CGFloat
+    private func setupCloudKitBindings() async {
+        // Get CloudKit settings manager on main actor
+        cloudKitSettings = CloudKitSettingsManager.shared
         
-        fontSize = savedFontSize ?? 30
-        fontFamily = savedFontFamily ?? "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
-        textColor = savedTextColor ?? "#000000"
-        backgroundColor = savedBackgroundColor ?? "#ffffff"
-        lineHeight = savedLineHeight ?? 1.7
-        useDarkMode = savedUseDarkMode
-        paragraphSpacing = savedParagraphSpacing ?? 1.0
+        guard let cloudKitSettings = cloudKitSettings else { return }
+        
+        // Bind CloudKit settings to this view model
+        cloudKitSettings.$fontSize
+            .assign(to: &$fontSize)
+        
+        cloudKitSettings.$fontFamily
+            .assign(to: &$fontFamily)
+        
+        cloudKitSettings.$textColor
+            .assign(to: &$textColor)
+        
+        cloudKitSettings.$backgroundColor
+            .assign(to: &$backgroundColor)
+        
+        cloudKitSettings.$lineHeight
+            .assign(to: &$lineHeight)
+        
+        cloudKitSettings.$darkModeOption
+            .assign(to: &$darkModeOption)
+        
+        cloudKitSettings.$paragraphSpacing
+            .assign(to: &$paragraphSpacing)
+    }
+    
+    private func loadSettings() {
+        // The CloudKit settings manager handles loading automatically
+        // This method is kept for backward compatibility and migration
     }
     
     private func saveSettings() {
-        // Save each value individually
-        userDefaults.set(fontSize, forKey: fontSizeKey)
-        userDefaults.set(fontFamily, forKey: fontFamilyKey)
-        userDefaults.set(textColor, forKey: textColorKey)
-        userDefaults.set(backgroundColor, forKey: backgroundColorKey)
-        userDefaults.set(lineHeight, forKey: lineHeightKey)
-        userDefaults.set(useDarkMode, forKey: useDarkModeKey)
-        userDefaults.set(paragraphSpacing, forKey: paragraphSpacingKey)
+        // Use CloudKit settings manager for saving
+        guard let cloudKitSettings = cloudKitSettings else { return }
         
-        // Force UserDefaults to save immediately
-        userDefaults.synchronize()
+        cloudKitSettings.fontSize = fontSize
+        cloudKitSettings.fontFamily = fontFamily
+        cloudKitSettings.textColor = textColor
+        cloudKitSettings.backgroundColor = backgroundColor
+        cloudKitSettings.lineHeight = lineHeight
+        cloudKitSettings.darkModeOption = darkModeOption
+        cloudKitSettings.paragraphSpacing = paragraphSpacing
+        cloudKitSettings.saveSettings()
     }
     
     // Method to reset all settings to defaults
@@ -80,7 +94,7 @@ class WebViewSettings: ObservableObject {
         textColor = "#000000"
         backgroundColor = "#ffffff"
         lineHeight = 1.4
-        useDarkMode = false
+        darkModeOption = .system
         paragraphSpacing = 1.0
     }
     
@@ -93,27 +107,24 @@ class WebViewSettings: ObservableObject {
         textColor = testTextColor
         
         // Force a save
-        userDefaults.synchronize()
+        cloudKitSettings?.forceSave()
     }
     
     // Method to force update to new defaults and clear old values
     func forceUpdateToNewDefaults() {
-        // Clear old UserDefaults values
-        userDefaults.removeObject(forKey: textColorKey)
-        userDefaults.removeObject(forKey: backgroundColorKey)
-        
         // Set new defaults
         textColor = "#000000"
         backgroundColor = "#ffffff"
         
         // Force save
-        userDefaults.synchronize()
+        cloudKitSettings?.forceSave()
     }
 }
 
 struct WebView: UIViewRepresentable {
     let htmlContent: String
     @EnvironmentObject var webViewSettings: WebViewSettings
+    @Environment(\.colorScheme) private var colorScheme
     
     func makeUIView(context: Context) -> WKWebView {
         // Create a proper WKWebViewConfiguration
@@ -151,8 +162,19 @@ struct WebView: UIViewRepresentable {
     }
     
     private func generateHTML() -> String {
-        let effectiveTextColor = webViewSettings.useDarkMode ? "#ffffff" : webViewSettings.textColor
-        let effectiveBackgroundColor = webViewSettings.useDarkMode ? "#1c1c1e" : webViewSettings.backgroundColor
+        // Determine effective colors based on dark mode option
+        let shouldUseDarkMode: Bool
+        switch webViewSettings.darkModeOption {
+        case .system:
+            shouldUseDarkMode = colorScheme == .dark
+        case .light:
+            shouldUseDarkMode = false
+        case .dark:
+            shouldUseDarkMode = true
+        }
+        
+        let effectiveTextColor = shouldUseDarkMode ? "#ffffff" : webViewSettings.textColor
+        let effectiveBackgroundColor = shouldUseDarkMode ? "#1c1c1e" : webViewSettings.backgroundColor
         
         // Add debugging and fallback for empty content
         let contentToDisplay = htmlContent.isEmpty ? "<p>No content available</p>" : htmlContent

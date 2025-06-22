@@ -33,4 +33,17 @@
     <entity name="Item" representedClassName="Item" syncable="YES" codeGenerationType="class">
         <attribute name="timestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
     </entity>
+    <entity name="AppSettings" representedClassName="AppSettings" syncable="YES" codeGenerationType="class">
+        <attribute name="backgroundColor" optional="YES" attributeType="String" defaultValueString="#ffffff"/>
+        <attribute name="fontFamily" optional="YES" attributeType="String" defaultValueString="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"/>
+        <attribute name="fontSize" optional="YES" attributeType="Double" defaultValueString="30" usesScalarValueType="YES"/>
+        <attribute name="installationURL" optional="YES" attributeType="String"/>
+        <attribute name="apiToken" optional="YES" attributeType="String"/>
+        <attribute name="archivedRetentionDays" optional="YES" attributeType="Integer 32" defaultValueString="30" usesScalarValueType="YES"/>
+        <attribute name="lineHeight" optional="YES" attributeType="Double" defaultValueString="1.7" usesScalarValueType="YES"/>
+        <attribute name="paragraphSpacing" optional="YES" attributeType="Double" defaultValueString="1.0" usesScalarValueType="YES"/>
+        <attribute name="textColor" optional="YES" attributeType="String" defaultValueString="#000000"/>
+        <attribute name="useDarkMode" optional="YES" attributeType="String" defaultValueString="system"/>
+        <attribute name="lastModified" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
 </model>
