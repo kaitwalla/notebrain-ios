@@ -6,7 +6,18 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		A3068D312E07D2D700F9FA33 /* NoteBrainShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A3068D272E07D2D700F9FA33 /* NoteBrainShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
+		A3068D2F2E07D2D700F9FA33 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A3B7C3232E0303A7003E2198 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A3068D262E07D2D700F9FA33;
+			remoteInfo = NoteBrainShareExtension;
+		};
 		A3B7C3402E0303A9003E2198 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = A3B7C3232E0303A7003E2198 /* Project object */;
@@ -23,13 +34,35 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		A3068D362E07D2D700F9FA33 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A3068D312E07D2D700F9FA33 /* NoteBrainShareExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		A3068D272E07D2D700F9FA33 /* NoteBrainShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NoteBrainShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		A3B7C32B2E0303A7003E2198 /* NoteBrain.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NoteBrain.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A3B7C33F2E0303A9003E2198 /* NoteBrainTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NoteBrainTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A3B7C3492E0303A9003E2198 /* NoteBrainUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NoteBrainUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A3068D352E07D2D700F9FA33 /* Exceptions for "NoteBrainShareExtension" folder in "NoteBrainShareExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = A3068D262E07D2D700F9FA33 /* NoteBrainShareExtension */;
+		};
 		A3B7C3512E0303A9003E2198 /* Exceptions for "NoteBrain" folder in "NoteBrain" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -40,6 +73,14 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		A3068D282E07D2D700F9FA33 /* NoteBrainShareExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A3068D352E07D2D700F9FA33 /* Exceptions for "NoteBrainShareExtension" folder in "NoteBrainShareExtension" target */,
+			);
+			path = NoteBrainShareExtension;
+			sourceTree = "<group>";
+		};
 		A3B7C32D2E0303A7003E2198 /* NoteBrain */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -61,6 +102,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		A3068D242E07D2D700F9FA33 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A3B7C3282E0303A7003E2198 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -91,6 +139,7 @@
 				A3B7C32D2E0303A7003E2198 /* NoteBrain */,
 				A3B7C3422E0303A9003E2198 /* NoteBrainTests */,
 				A3B7C34C2E0303A9003E2198 /* NoteBrainUITests */,
+				A3068D282E07D2D700F9FA33 /* NoteBrainShareExtension */,
 				A3B7C32C2E0303A7003E2198 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -101,6 +150,7 @@
 				A3B7C32B2E0303A7003E2198 /* NoteBrain.app */,
 				A3B7C33F2E0303A9003E2198 /* NoteBrainTests.xctest */,
 				A3B7C3492E0303A9003E2198 /* NoteBrainUITests.xctest */,
+				A3068D272E07D2D700F9FA33 /* NoteBrainShareExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -108,6 +158,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		A3068D262E07D2D700F9FA33 /* NoteBrainShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A3068D322E07D2D700F9FA33 /* Build configuration list for PBXNativeTarget "NoteBrainShareExtension" */;
+			buildPhases = (
+				A3068D232E07D2D700F9FA33 /* Sources */,
+				A3068D242E07D2D700F9FA33 /* Frameworks */,
+				A3068D252E07D2D700F9FA33 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A3068D282E07D2D700F9FA33 /* NoteBrainShareExtension */,
+			);
+			name = NoteBrainShareExtension;
+			packageProductDependencies = (
+			);
+			productName = NoteBrainShareExtension;
+			productReference = A3068D272E07D2D700F9FA33 /* NoteBrainShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		A3B7C32A2E0303A7003E2198 /* NoteBrain */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = A3B7C3522E0303A9003E2198 /* Build configuration list for PBXNativeTarget "NoteBrain" */;
@@ -115,10 +187,12 @@
 				A3B7C3272E0303A7003E2198 /* Sources */,
 				A3B7C3282E0303A7003E2198 /* Frameworks */,
 				A3B7C3292E0303A7003E2198 /* Resources */,
+				A3068D362E07D2D700F9FA33 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A3068D302E07D2D700F9FA33 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				A3B7C32D2E0303A7003E2198 /* NoteBrain */,
@@ -186,6 +260,9 @@
 				LastSwiftUpdateCheck = 1640;
 				LastUpgradeCheck = 1640;
 				TargetAttributes = {
+					A3068D262E07D2D700F9FA33 = {
+						CreatedOnToolsVersion = 16.4;
+					};
 					A3B7C32A2E0303A7003E2198 = {
 						CreatedOnToolsVersion = 16.4;
 					};
@@ -216,11 +293,19 @@
 				A3B7C32A2E0303A7003E2198 /* NoteBrain */,
 				A3B7C33E2E0303A9003E2198 /* NoteBrainTests */,
 				A3B7C3482E0303A9003E2198 /* NoteBrainUITests */,
+				A3068D262E07D2D700F9FA33 /* NoteBrainShareExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		A3068D252E07D2D700F9FA33 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A3B7C3292E0303A7003E2198 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -245,6 +330,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		A3068D232E07D2D700F9FA33 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A3B7C3272E0303A7003E2198 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -269,6 +361,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		A3068D302E07D2D700F9FA33 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A3068D262E07D2D700F9FA33 /* NoteBrainShareExtension */;
+			targetProxy = A3068D2F2E07D2D700F9FA33 /* PBXContainerItemProxy */;
+		};
 		A3B7C3412E0303A9003E2198 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = A3B7C32A2E0303A7003E2198 /* NoteBrain */;
@@ -282,6 +379,60 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		A3068D332E07D2D700F9FA33 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = NoteBrainShareExtension/NoteBrainShareExtension.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PNKZN48WK4;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NoteBrainShareExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NoteBrainShareExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = group.kait.dev.NoteBrain.NoteBrainShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A3068D342E07D2D700F9FA33 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = NoteBrainShareExtension/NoteBrainShareExtension.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PNKZN48WK4;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NoteBrainShareExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NoteBrainShareExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = group.kait.dev.NoteBrain.NoteBrainShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		A3B7C3532E0303A9003E2198 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -306,8 +457,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.2;
-				PRODUCT_BUNDLE_IDENTIFIER = kait.dev.NoteBrain;
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = group.kait.dev.NoteBrain;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -340,8 +491,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.2;
-				PRODUCT_BUNDLE_IDENTIFIER = kait.dev.NoteBrain;
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = group.kait.dev.NoteBrain;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -540,6 +691,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		A3068D322E07D2D700F9FA33 /* Build configuration list for PBXNativeTarget "NoteBrainShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A3068D332E07D2D700F9FA33 /* Debug */,
+				A3068D342E07D2D700F9FA33 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		A3B7C3262E0303A7003E2198 /* Build configuration list for PBXProject "NoteBrain" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

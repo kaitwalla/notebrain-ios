@@ -40,7 +40,7 @@ class CloudKitSettingsManager: ObservableObject {
     // MARK: - Private Properties
     private let container = CKContainer.default()
     private let database: CKDatabase
-    private let logger = Logger(subsystem: "com.notebrain", category: "CloudKitSettings")
+    private let logger = Logger(subsystem: "kait.dev.NoteBrain", category: "CloudKitSettings")
     private let settingsRecordType = "AppSettings"
     private var saveWorkItem: DispatchWorkItem?
     private let viewContext: NSManagedObjectContext = PersistenceController.shared.container.viewContext

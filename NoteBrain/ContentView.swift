@@ -12,6 +12,7 @@ struct ContentView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @EnvironmentObject var webViewSettings: WebViewSettings
     @EnvironmentObject var configViewModel: InstallationConfigViewModel
+    @StateObject private var sharedURLProcessor = SharedURLProcessor.shared
     
     // Fetch inbox articles
     @FetchRequest(
@@ -215,6 +216,9 @@ struct ContentView: View {
             startGlobalSummarizePolling()
             // Force refresh of inbox articles when view appears
             refreshTrigger = UUID()
+            
+            // Check for shared URLs from the share extension
+            sharedURLProcessor.checkForSharedURLs()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ArticleArchived"))) { _ in
             // Force refresh when an article is archived
@@ -258,6 +262,33 @@ struct ContentView: View {
         }
         .onDisappear {
             summarizePollingTask?.cancel()
+        }
+        .overlay(
+            // Show processing indicator when shared URLs are being processed
+            Group {
+                if sharedURLProcessor.isProcessing {
+                    VStack {
+                        ProgressView()
+                            .scaleEffect(1.2)
+                        Text("Processing shared URLs...")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .cornerRadius(10)
+                    .shadow(radius: 5)
+                }
+            }
+        )
+        .onChange(of: sharedURLProcessor.lastProcessedCount) { oldCount, newCount in
+            if newCount > 0 {
+                // Show success message
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    // Reset the count after showing the message
+                    sharedURLProcessor.lastProcessedCount = 0
+                }
+            }
         }
     }
     

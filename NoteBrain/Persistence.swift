@@ -11,7 +11,7 @@ import os.log
 
 struct PersistenceController {
     static let shared = PersistenceController()
-    private let logger = Logger(subsystem: "com.notebrain", category: "Persistence")
+    private let logger = Logger(subsystem: "kait.dev.NoteBrain", category: "Persistence")
 
     @MainActor
     static let preview: PersistenceController = {
@@ -47,7 +47,7 @@ struct PersistenceController {
             
             // Enable CloudKit sync
             storeDescription.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(
-                containerIdentifier: "iCloud.com.notebrain.settings"
+                containerIdentifier: "iCloud.kait.dev.NoteBrain.settings"
             )
         }
         

@@ -99,6 +99,8 @@ class ArticleActionSyncManager {
             return "/api/articles/\(id)/delete-summary"
         case "summarize":
             return "/api/articles/\(id)/summarize"
+        case "add":
+            return "/api/articles"
         default:
             return nil
         }

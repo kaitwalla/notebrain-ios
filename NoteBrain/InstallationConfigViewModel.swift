@@ -25,7 +25,7 @@ class InstallationConfigViewModel: ObservableObject {
     }
     
     private let viewContext: NSManagedObjectContext = PersistenceController.shared.container.viewContext
-    private let logger = Logger(subsystem: "com.notebrain", category: "InstallationConfig")
+    private let logger = Logger(subsystem: "kait.dev.NoteBrain", category: "InstallationConfig")
     private var saveWorkItem: DispatchWorkItem?
     private let cloudKitSettings = CloudKitSettingsManager.shared
     

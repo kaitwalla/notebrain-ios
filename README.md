@@ -61,7 +61,7 @@ When the app starts:
 ### Developer Notes
 
 #### CloudKit Container
-- Container ID: `iCloud.com.notebrain.settings`
+- Container ID: `iCloud.kait.dev.NoteBrain.settings`
 - Record Type: `AppSettings`
 - Single record per user containing all settings
 
