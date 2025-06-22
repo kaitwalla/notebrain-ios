@@ -10,6 +10,8 @@ import CoreData
 
 struct ContentView: View {
     @Environment(\.managedObjectContext) private var viewContext
+    @EnvironmentObject var webViewSettings: WebViewSettings
+    @EnvironmentObject var configViewModel: InstallationConfigViewModel
     
     // Fetch inbox articles
     @FetchRequest(
@@ -17,6 +19,13 @@ struct ContentView: View {
         predicate: NSPredicate(format: "status == %@", "inbox"),
         animation: .default)
     private var inboxArticles: FetchedResults<Article>
+    
+    // Add a computed property that depends on refreshTrigger to force refresh
+    private var refreshedInboxArticles: FetchedResults<Article> {
+        _ = refreshTrigger // This forces the view to refresh when refreshTrigger changes
+        _ = forceRefresh // This forces the view to refresh when forceRefresh changes
+        return inboxArticles
+    }
     
     @State private var selectedTab = 0 // 0: Inbox, 1: Archived
     @State private var isLoading = false
@@ -30,143 +39,143 @@ struct ContentView: View {
     @State private var archivedPage = 1
     @State private var archivedTotalPages = 1
     @State private var isLoadingArchived = false
-    @State private var archivedRetentionDays: Int = 30
+    @State private var refreshTrigger = UUID() // Add this to force refresh
+    @State private var forceRefresh = false // Additional refresh trigger
     
     var body: some View {
         NavigationView {
-            VStack {
-                Picker("Tab", selection: $selectedTab) {
-                    Text("Inbox").tag(0)
-                    Text("Archived").tag(1)
-                }
-                .pickerStyle(SegmentedPickerStyle())
-                .padding([.top, .horizontal])
-                
-                Group {
-                    if isLoading || isLoadingArchived {
-                        ProgressView("Loading articles...")
-                    } else if let error = errorMessage {
-                        Text(error)
-                            .foregroundColor(.red)
-                    } else {
-                        List {
-                            if selectedTab == 0 {
-                                ForEach(inboxArticles, id: \ .objectID) { article in
-                                    ZStack(alignment: .topLeading) {
-                                        if article.starred {
-                                            ZStack {
-                                                Rectangle()
-                                                    .fill(Color(.systemGray))
-                                                    .frame(width: 55, height: 22)
-                                                    .rotationEffect(.degrees(-40))
-                                                    .offset(x: -40, y: -20)
-                                                Image(systemName: "star.fill")
-                                                    .foregroundColor(Color(.systemGray5))
-                                                    .font(.system(size: 10))
-                                                    .offset(x: -40, y: -15)
-                                                    .zIndex(1)
-                                            }
-                                        }
-                                        NavigationLink(destination: ArticleDetailView(article: article)) {
-                                            VStack(alignment: .leading) {
-                                                Text(article.title ?? "")
-                                                    .font(.headline)
-                                                if let author = article.author, !author.isEmpty, let site = article.siteName, !site.isEmpty {
-                                                    Text("\(author) · \(site)")
-                                                        .font(.caption)
-                                                        .foregroundColor(.gray)
-                                                } else if let author = article.author, !author.isEmpty {
-                                                    Text(author)
-                                                        .font(.caption)
-                                                        .foregroundColor(.gray)
-                                                } else if let site = article.siteName, !site.isEmpty {
-                                                    Text(site)
-                                                        .font(.caption)
-                                                        .foregroundColor(.gray)
+            ZStack {
+                VStack {
+                    Picker("Tab", selection: $selectedTab) {
+                        Text("Inbox").tag(0)
+                        Text("Archived").tag(1)
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    .padding([.top, .horizontal])
+                    
+                    Group {
+                        if isLoading || isLoadingArchived {
+                            ProgressView("Loading articles...")
+                        } else if let error = errorMessage {
+                            Text(error)
+                                .foregroundColor(.red)
+                        } else {
+                            List {
+                                if selectedTab == 0 {
+                                    ForEach(refreshedInboxArticles, id: \.id) { article in
+                                        NavigationLink(destination: ArticleDetailView(article: article)
+                                            .environmentObject(webViewSettings)
+                                        ) {
+                                            HStack(alignment: .center, spacing: 12) {
+                                                if article.starred {
+                                                    Image(systemName: "star.fill")
+                                                        .foregroundColor(.yellow)
+                                                        .font(.system(size: 16, weight: .medium))
                                                 }
-                                            }
-                                            .padding(.vertical, 8)
-                                            .padding(.horizontal, 0)
-                                        }
-                                    }
-                                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                                        Button {
-                                            toggleStar(for: article)
-                                        } label: {
-                                            Label(article.starred ? "Unstar" : "Star", systemImage: article.starred ? "star.slash" : "star")
-                                        }
-                                        .tint(article.starred ? .gray : .yellow)
-                                    }
-                                }
-                            } else {
-                                ForEach(filteredArchivedArticles(), id: \ .objectID) { article in
-                                    ZStack(alignment: .topLeading) {
-                                        if article.starred {
-                                            ZStack {
-                                                Rectangle()
-                                                    .fill(Color(.systemGray))
-                                                    .frame(width: 55, height: 22)
-                                                    .rotationEffect(.degrees(-40))
-                                                    .offset(x: -40, y: -20)
-                                                Image(systemName: "star.fill")
-                                                    .foregroundColor(Color(.systemGray5))
-                                                    .font(.system(size: 10))
-                                                    .offset(x: -40, y: -15)
-                                                    .zIndex(1)
-                                            }
-                                        }
-                                        NavigationLink(destination: ArticleDetailView(article: article)) {
-                                            VStack(alignment: .leading) {
-                                                Text(article.title ?? "")
-                                                    .font(.headline)
-                                                if let author = article.author, !author.isEmpty, let site = article.siteName, !site.isEmpty {
-                                                    Text("\(author) · \(site)")
-                                                        .font(.caption)
-                                                        .foregroundColor(.gray)
-                                                } else if let author = article.author, !author.isEmpty {
-                                                    Text(author)
-                                                        .font(.caption)
-                                                        .foregroundColor(.gray)
-                                                } else if let site = article.siteName, !site.isEmpty {
-                                                    Text(site)
-                                                        .font(.caption)
-                                                        .foregroundColor(.gray)
+                                                
+                                                VStack(alignment: .leading) {
+                                                    Text(article.title ?? "")
+                                                        .font(.headline)
+                                                    if let author = article.author, !author.isEmpty, let site = article.siteName, !site.isEmpty {
+                                                        Text("\(author) · \(site)")
+                                                            .font(.caption)
+                                                            .foregroundColor(.gray)
+                                                    } else if let author = article.author, !author.isEmpty {
+                                                        Text(author)
+                                                            .font(.caption)
+                                                            .foregroundColor(.gray)
+                                                    } else if let site = article.siteName, !site.isEmpty {
+                                                        Text(site)
+                                                            .font(.caption)
+                                                            .foregroundColor(.gray)
+                                                    }
                                                 }
+                                                .padding(.vertical, 8)
+                                                .padding(.horizontal, 16)
+                                                .background(Color(.systemBackground))
+                                                .cornerRadius(12)
+                                                .shadow(color: Color(.sRGBLinear, white: 0, opacity: 0.04), radius: 2, x: 0, y: 1)
                                             }
-                                            .padding(.vertical, 8)
-                                            .padding(.horizontal, 0)
+                                        }
+                                        .clipped()
+                                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                            Button {
+                                                toggleStar(for: article)
+                                            } label: {
+                                                Label(article.starred ? "Unstar" : "Star", systemImage: article.starred ? "star.slash" : "star")
+                                            }
+                                            .tint(article.starred ? .gray : .yellow)
                                         }
                                     }
-                                    .onAppear {
-                                        if article == filteredArchivedArticles().last {
-                                            loadMoreArchivedArticlesIfNeeded()
+                                } else {
+                                    ForEach(filteredArchivedArticles(), id: \.id) { article in
+                                        NavigationLink(destination: ArticleDetailView(article: article)
+                                            .environmentObject(webViewSettings)
+                                        ) {
+                                            HStack(alignment: .center, spacing: 12) {
+                                                if article.starred {
+                                                    Image(systemName: "star.fill")
+                                                        .foregroundColor(.yellow)
+                                                        .font(.system(size: 16, weight: .medium))
+                                                }
+                                                
+                                                VStack(alignment: .leading) {
+                                                    Text(article.title ?? "")
+                                                        .font(.headline)
+                                                    if let author = article.author, !author.isEmpty, let site = article.siteName, !site.isEmpty {
+                                                        Text("\(author) · \(site)")
+                                                            .font(.caption)
+                                                            .foregroundColor(.gray)
+                                                    } else if let author = article.author, !author.isEmpty {
+                                                        Text(author)
+                                                            .font(.caption)
+                                                            .foregroundColor(.gray)
+                                                    } else if let site = article.siteName, !site.isEmpty {
+                                                        Text(site)
+                                                            .font(.caption)
+                                                            .foregroundColor(.gray)
+                                                    }
+                                                }
+                                                .padding(.vertical, 8)
+                                                .padding(.horizontal, 16)
+                                                .background(Color(.systemBackground))
+                                                .cornerRadius(12)
+                                                .shadow(color: Color(.sRGBLinear, white: 0, opacity: 0.04), radius: 2, x: 0, y: 1)
+                                            }
                                         }
-                                    }
-                                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                                        Button {
-                                            toggleStar(for: article)
-                                        } label: {
-                                            Label(article.starred ? "Unstar" : "Star", systemImage: article.starred ? "star.slash" : "star")
+                                        .clipped()
+                                        .onAppear {
+                                            if article == filteredArchivedArticles().last {
+                                                loadMoreArchivedArticlesIfNeeded()
+                                            }
                                         }
-                                        .tint(article.starred ? .gray : .yellow)
+                                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                            Button {
+                                                toggleStar(for: article)
+                                            } label: {
+                                                Label(article.starred ? "Unstar" : "Star", systemImage: article.starred ? "star.slash" : "star")
+                                            }
+                                            .tint(article.starred ? .gray : .yellow)
+                                        }
                                     }
                                 }
                             }
+                            .listStyle(PlainListStyle())
                         }
                     }
-                }
-                .navigationTitle(selectedTab == 0 ? "Inbox" : "Archived")
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        NavigationLink(destination: SettingsView(context: viewContext)) {
-                            Image(systemName: "gear")
+                    .navigationTitle(selectedTab == 0 ? "Inbox" : "Archived")
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            NavigationLink(destination: SettingsView().environmentObject(webViewSettings)) {
+                                Image(systemName: "gear")
+                            }
                         }
-                    }
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button(action: { checkPendingActionsBeforeClear() }) {
-                            Image(systemName: "arrow.clockwise")
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button(action: { checkPendingActionsBeforeClear() }) {
+                                Image(systemName: "arrow.clockwise")
+                            }
+                            .help("Clear and Redownload Articles")
                         }
-                        .help("Clear and Redownload Articles")
                     }
                 }
             }
@@ -197,14 +206,55 @@ struct ContentView: View {
         })
         // Only run loadArticles if not in Xcode Previews
         .modifier(LoadArticlesTaskModifier(isPreview: ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1", loadArticles: loadArticles))
-        .onChange(of: selectedTab) { newTab in
-            if newTab == 1 {
+        .onChange(of: selectedTab) {
+            if selectedTab == 1 {
                 Task { await loadArchivedArticles(reset: true) }
             }
         }
         .onAppear {
             startGlobalSummarizePolling()
-            loadArchivedRetentionDays()
+            // Force refresh of inbox articles when view appears
+            refreshTrigger = UUID()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ArticleArchived"))) { _ in
+            // Force refresh when an article is archived
+            refreshTrigger = UUID()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ArticleDeleted"))) { _ in
+            // Force refresh when an article is deleted
+            
+            // Add a small delay to ensure the deletion is processed
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                // Force a context refresh to ensure the fetch request updates
+                viewContext.refreshAllObjects()
+                
+                // Force the fetch request to refresh
+                refreshInboxArticles()
+                
+                refreshTrigger = UUID()
+                
+                // Toggle force refresh to ensure view updates
+                self.forceRefresh.toggle()
+                
+                // Additional verification
+                let fetchRequest: NSFetchRequest<Article> = Article.fetchRequest()
+                fetchRequest.predicate = NSPredicate(format: "status == %@", "inbox")
+                do {
+                    let manualFetch = try viewContext.fetch(fetchRequest)
+                    
+                    // Verify that the fetch request results match the manual fetch
+                    if manualFetch.count != self.inboxArticles.count {
+                        // Force another refresh
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            self.viewContext.refreshAllObjects()
+                            self.refreshTrigger = UUID()
+                            self.forceRefresh.toggle()
+                        }
+                    }
+                } catch {
+                    // Handle error silently
+                }
+            }
         }
         .onDisappear {
             summarizePollingTask?.cancel()
@@ -223,29 +273,22 @@ struct ContentView: View {
         }
     }
     
-    private func clearAndRedownloadArticles() async {
-        isLoading = true
-        defer { isLoading = false }
-        errorMessage = nil
-        let fetchRequest: NSFetchRequest<NSFetchRequestResult> = Article.fetchRequest()
-        let batchDeleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
-        do {
-            try viewContext.execute(batchDeleteRequest)
-            try viewContext.save()
-            viewContext.reset()
-            await loadArticles()
-        } catch {
-            errorMessage = "Failed to clear and redownload articles: \(error.localizedDescription)"
+    private func toggleStar(for article: Article) {
+        article.starred.toggle()
+        if (article.starred) {
+            ArticleActionSyncManager.shared.addAction(articleId: article.id, actionType: "star")
+        } else {
+            ArticleActionSyncManager.shared.addAction(articleId: article.id, actionType: "unstar")
         }
+        try? viewContext.save()
     }
-
+    
     private func checkPendingActionsBeforeClear() {
-        let fetchRequest: NSFetchRequest<ArticleAction> = ArticleAction.fetchRequest() as! NSFetchRequest<ArticleAction>
-        fetchRequest.fetchLimit = 1
+        let fetchRequest: NSFetchRequest<ArticleAction> = ArticleAction.fetchRequest()
         do {
-            let count = try viewContext.count(for: fetchRequest)
-            if count > 0 {
-                pendingActionsCount = count
+            let actions = try viewContext.fetch(fetchRequest)
+            pendingActionsCount = actions.count
+            if actions.count > 0 {
                 showPendingActionsAlert = true
             } else {
                 showClearAlert = true
@@ -254,51 +297,80 @@ struct ContentView: View {
             showClearAlert = true
         }
     }
-
+    
+    private func clearAndRedownloadArticles() async {
+        // Clear all articles
+        let fetchRequest: NSFetchRequest<NSFetchRequestResult> = Article.fetchRequest()
+        let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+        do {
+            try viewContext.execute(deleteRequest)
+            try viewContext.save()
+            
+            // Force a context refresh to ensure deletion is fully committed
+            viewContext.refreshAllObjects()
+            
+            // Add a small delay to ensure the deletion is fully processed
+            try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        } catch {
+            // Handle error silently
+        }
+        
+        // Redownload articles
+        await loadArticles()
+    }
+    
     private func applyPendingActionsAndRedownload() async {
-        // Recreate a sync manager for one-off sync
-        await ArticleActionSyncManager.oneTimeSync(context: viewContext)
+        // Apply pending actions first
+        ArticleActionSyncManager.shared.triggerSync()
+        
+        // Then clear and redownload
         await clearAndRedownloadArticles()
     }
-
-    private func toggleStar(for article: Article) {
-        article.starred.toggle()
-        let actionType = article.starred ? "star" : "unstar"
-        ArticleActionSyncManager.shared.addAction(articleId: article.id, actionType: actionType)
-        try? viewContext.save()
-    }
-
+    
     private func startGlobalSummarizePolling() {
         summarizePollingTask?.cancel()
         summarizePollingTask = Task {
             var pollingStartTimes: [Int64: Date] = [:]
             while !Task.isCancelled {
                 let summarizeActions = fetchPendingSummarizeActions()
-                let now = Date()
-                for action in summarizeActions {
-                    let articleId = action.articleId
-                    if pollingStartTimes[articleId] == nil {
-                        pollingStartTimes[articleId] = now
+                
+                // Only proceed if there are actually pending summarize actions
+                if !summarizeActions.isEmpty {
+                    let now = Date()
+                    for action in summarizeActions {
+                        let articleId = action.articleId
+                        if pollingStartTimes[articleId] == nil {
+                            pollingStartTimes[articleId] = now
+                        }
+                        // Only poll for up to 1 minute per article
+                        if let start = pollingStartTimes[articleId], now.timeIntervalSince(start) > 60 {
+                            continue
+                        }
                     }
-                    // Only poll for up to 1 minute per article
-                    if let start = pollingStartTimes[articleId], now.timeIntervalSince(start) > 60 {
-                        continue
+                    
+                    // Only fetch articles if we have active polling
+                    let activeActions = summarizeActions.filter { action in
+                        let start = pollingStartTimes[action.articleId] ?? now
+                        return now.timeIntervalSince(start) <= 60
                     }
-                    // Fetch latest articles
-                    let service = ArticleService(context: viewContext)
-                    try? await service.fetchArticles()
-                    // Check if summary is now present
-                    if let article = fetchArticleById(articleId: articleId), let summary = article.summary, !summary.isEmpty {
-                        pollingStartTimes.removeValue(forKey: articleId)
+                    
+                    if !activeActions.isEmpty {
+                        do {
+                            let service = ArticleService(context: viewContext)
+                            try await service.fetchArticles()
+                        } catch {
+                            // Handle error silently
+                        }
                     }
                 }
-                try? await Task.sleep(nanoseconds: 15_000_000_000) // 15 seconds
+                
+                try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
             }
         }
     }
-
+    
     private func fetchPendingSummarizeActions() -> [ArticleAction] {
-        let fetchRequest: NSFetchRequest<ArticleAction> = ArticleAction.fetchRequest() as! NSFetchRequest<ArticleAction>
+        let fetchRequest: NSFetchRequest<ArticleAction> = ArticleAction.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "actionType == %@", "summarize")
         do {
             return try viewContext.fetch(fetchRequest)
@@ -306,26 +378,22 @@ struct ContentView: View {
             return []
         }
     }
-
-    private func fetchArticleById(articleId: Int64) -> Article? {
-        let fetchRequest: NSFetchRequest<Article> = Article.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "id == %lld", articleId)
-        fetchRequest.fetchLimit = 1
-        return (try? viewContext.fetch(fetchRequest))?.first
-    }
-
-    private func loadArchivedRetentionDays() {
-        let fetchRequest: NSFetchRequest<InstallationConfig> = InstallationConfig.fetchRequest()
-        if let config = try? viewContext.fetch(fetchRequest).first,
-           let days = config.value(forKey: "archivedRetentionDays") as? Int {
-            archivedRetentionDays = days
-        } else {
-            archivedRetentionDays = 30
+    
+    private func refreshInboxArticles() {
+        // Force the fetch request to refresh
+        inboxArticles.nsPredicate = NSPredicate(format: "status == %@", "inbox")
+        
+        // Force the view to update by invalidating the fetch request
+        viewContext.refreshAllObjects()
+        
+        // Trigger a view update
+        DispatchQueue.main.async {
+            self.refreshTrigger = UUID()
         }
     }
 
     private func filteredArchivedArticles() -> [Article] {
-        let cutoff = Calendar.current.date(byAdding: .day, value: -archivedRetentionDays, to: Date()) ?? Date.distantPast
+        let cutoff = Calendar.current.date(byAdding: .day, value: -configViewModel.archivedRetentionDays, to: Date()) ?? Date.distantPast
         return archivedArticles.filter { article in
             guard let archivedAt = article.archivedAt else { return true }
             return archivedAt >= cutoff
@@ -374,7 +442,7 @@ struct ContentView: View {
                 article.createdAt = resp.createdAt
                 article.updatedAt = resp.updatedAt
                 // Only persist if within retention window
-                let cutoff = Calendar.current.date(byAdding: .day, value: -archivedRetentionDays, to: Date()) ?? Date.distantPast
+                let cutoff = Calendar.current.date(byAdding: .day, value: -configViewModel.archivedRetentionDays, to: Date()) ?? Date.distantPast
                 if let archivedAt = article.archivedAt, archivedAt >= cutoff {
                     try? viewContext.save()
                 }
@@ -437,5 +505,5 @@ private struct LoadArticlesTaskModifier: ViewModifier {
         article.createdAt = Date().addingTimeInterval(Double(-i * 120))
     }
     try? context.save()
-    return ContentView().environment(\.managedObjectContext, context)
+    return ContentView().environment(\.managedObjectContext, context).environmentObject(WebViewSettings()).environmentObject(InstallationConfigViewModel())
 }

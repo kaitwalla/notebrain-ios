@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Gradients -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e293b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="primaryGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0891b2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="highlightGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ec4899;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#db2777;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1024" height="1024" fill="url(#bgGradient)"/>
+  
+  <!-- Large geometric shapes -->
+  <!-- Main circle -->
+  <circle cx="512" cy="512" r="300" fill="url(#primaryGradient)" opacity="0.9"/>
+  
+  <!-- Overlapping triangle -->
+  <path d="M 200 400 L 400 200 L 600 400 L 500 600 Z" fill="url(#accentGradient)" opacity="0.8"/>
+  
+  <!-- Diagonal rectangle -->
+  <rect x="600" y="300" width="200" height="400" rx="40" fill="url(#highlightGradient)" opacity="0.7" transform="rotate(15 700 500)"/>
+  
+  <!-- Small accent circles -->
+  <circle cx="200" cy="200" r="60" fill="#ffffff" opacity="0.9"/>
+  <circle cx="824" cy="200" r="60" fill="#ffffff" opacity="0.9"/>
+  <circle cx="200" cy="824" r="60" fill="#ffffff" opacity="0.9"/>
+  <circle cx="824" cy="824" r="60" fill="#ffffff" opacity="0.9"/>
+  
+  <!-- Center accent -->
+  <circle cx="512" cy="512" r="80" fill="#ffffff" opacity="0.8"/>
+</svg> 

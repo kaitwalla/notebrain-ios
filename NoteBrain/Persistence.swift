@@ -6,9 +6,11 @@
 //
 
 import CoreData
+import os.log
 
 struct PersistenceController {
     static let shared = PersistenceController()
+    private let logger = Logger(subsystem: "com.notebrain", category: "Persistence")
 
     @MainActor
     static let preview: PersistenceController = {
@@ -29,13 +31,26 @@ struct PersistenceController {
         return result
     }()
 
-    let container: NSPersistentCloudKitContainer
+    let container: NSPersistentContainer
 
     init(inMemory: Bool = false) {
-        container = NSPersistentCloudKitContainer(name: "NoteBrain")
+        container = NSPersistentContainer(name: "NoteBrain")
         if inMemory {
             container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
         }
+        
+        // Configure the persistent store
+        if let storeDescription = container.persistentStoreDescriptions.first {
+            storeDescription.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
+            storeDescription.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
+        }
+        
+        // Add some debugging for the context before setting up the closure
+        print("Core Data context configured: concurrencyType=\(container.viewContext.concurrencyType.rawValue)")
+        
+        // Capture logger before the closure to avoid capturing self
+        let logger = self.logger
+        
         container.loadPersistentStores(completionHandler: { (storeDescription, error) in
             if let error = error as NSError? {
                 // Replace this implementation with code to handle the error appropriately.
@@ -49,9 +64,13 @@ struct PersistenceController {
                  * The store could not be migrated to the current model version.
                  Check the error message to determine what the actual problem was.
                  */
+                logger.error("Core Data store loading failed: \(error.localizedDescription)")
                 fatalError("Unresolved error \(error), \(error.userInfo)")
+            } else {
+                logger.info("Core Data store loaded successfully")
             }
         })
         container.viewContext.automaticallyMergesChangesFromParent = true
+        container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
     }
 }

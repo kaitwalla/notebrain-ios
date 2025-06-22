@@ -11,7 +11,8 @@ import CoreData
 @main
 struct NoteBrainApp: App {
     let persistenceController = PersistenceController.shared
-    @StateObject private var configViewModel = InstallationConfigViewModel(context: PersistenceController.shared.container.viewContext)
+    @StateObject private var configViewModel = InstallationConfigViewModel()
+    @StateObject private var webViewSettings = WebViewSettings()
 
     var body: some Scene {
         WindowGroup {
@@ -19,13 +20,14 @@ struct NoteBrainApp: App {
                 if configViewModel.isConfigured {
                     ContentView()
                         .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                        .environmentObject(webViewSettings)
+                        .environmentObject(configViewModel)
                 } else {
-                    InstallationConfigView(context: persistenceController.container.viewContext)
+                    InstallationConfigView()
                         .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                        .environmentObject(webViewSettings)
+                        .environmentObject(configViewModel)
                 }
-            }
-            .onChange(of: configViewModel.isConfigured) { newValue in
-                print("App: isConfigured changed to: \(newValue)")
             }
         }
     }

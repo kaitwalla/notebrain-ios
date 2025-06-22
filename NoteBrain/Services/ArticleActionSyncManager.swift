@@ -39,16 +39,24 @@ class ArticleActionSyncManager {
         guard !isSyncing else { return }
         isSyncing = true
         Task {
+            // Check what types of actions we have before syncing
+            let actions = Self.fetchPendingActions(context: context)
+            let hasNonSummarizeActions = actions.contains { $0.actionType != "summarize" }
+            
             await Self.syncActions(context: context)
-            // Fetch latest articles after syncing actions
-            let articleService = ArticleService(context: context)
-            do {
-                try await articleService.fetchArticles()
-                // Clean up already-applied actions
-                await Self.cleanupAppliedActions(context: context)
-            } catch {
-                print("Failed to fetch articles after sync: \(error)")
+            
+            // Only fetch articles if there were actions that might have changed article state
+            // For summarize actions, we'll let the polling mechanism handle updates
+            if hasNonSummarizeActions {
+                let articleService = ArticleService(context: context)
+                do {
+                    try await articleService.fetchArticles()
+                } catch {
+                    // Handle error silently
+                }
             }
+            // Clean up already-applied actions
+            await Self.cleanupAppliedActions(context: context)
             self.isSyncing = false
         }
     }
@@ -58,12 +66,11 @@ class ArticleActionSyncManager {
     }
     
     private static func fetchPendingActions(context: NSManagedObjectContext) -> [ArticleAction] {
-        let fetchRequest: NSFetchRequest<ArticleAction> = ArticleAction.fetchRequest() as! NSFetchRequest<ArticleAction>
+        let fetchRequest: NSFetchRequest<ArticleAction> = ArticleAction.fetchRequest()
         fetchRequest.sortDescriptors = [NSSortDescriptor(key: "timestamp", ascending: true)]
         do {
             return try context.fetch(fetchRequest)
         } catch {
-            print("Failed to fetch ArticleActions: \(error)")
             return []
         }
     }
@@ -84,13 +91,22 @@ class ArticleActionSyncManager {
         case "unstar":
             return "/api/articles/\(id)/unstar"
         case "archive":
-            return "/api/articles/\(id)/archive"
+            return "/api/articles/\(id)/read"
         case "delete":
-            return "/api/articles/\(id)/delete"
+            return "/api/articles/\(id)"
         case "summarize":
             return "/api/articles/\(id)/summarize"
         default:
             return nil
+        }
+    }
+    
+    private static func httpMethod(for action: ArticleAction) -> String {
+        switch action.actionType {
+        case "delete":
+            return "DELETE"
+        default:
+            return "POST"
         }
     }
     
@@ -101,9 +117,9 @@ class ArticleActionSyncManager {
         for action in reconciled {
             guard let endpoint = endpoint(for: action) else { continue }
             do {
-                try await postAction(to: endpoint, apiService: apiService)
+                try await postAction(to: endpoint, action: action, apiService: apiService)
             } catch {
-                print("Failed to sync action for articleId \(action.articleId): \(error)")
+                // Handle error silently
             }
         }
         // Clear all ArticleAction objects after sync
@@ -113,20 +129,23 @@ class ArticleActionSyncManager {
             try context.execute(deleteRequest)
             try context.save()
         } catch {
-            print("Failed to clear ArticleAction database: \(error)")
+            // Handle error silently
         }
     }
     
-    private static func postAction(to endpoint: String, apiService: APIService) async throws {
+    private static func postAction(to endpoint: String, action: ArticleAction, apiService: APIService) async throws {
         guard let baseURL = apiService.baseURL,
               let url = URL(string: "\(baseURL)\(endpoint)") else {
             throw URLError(.badURL)
         }
+        
         var request = URLRequest(url: url)
-        request.httpMethod = "POST"
+        request.httpMethod = httpMethod(for: action)
+        
         if let token = apiService.apiToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
+        
         let (_, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse, (200..<300).contains(httpResponse.statusCode) else {
             throw URLError(.badServerResponse)
@@ -142,16 +161,19 @@ class ArticleActionSyncManager {
         do {
             try context.save()
         } catch {
-            print("Failed to save ArticleAction: \(error)")
+            // Handle error silently
         }
+        // Only trigger sync if device is connected
         if isConnected {
+            triggerSync()
+        } else {
             triggerSync()
         }
     }
     
     // Clean up actions that have already been applied after a refresh
     private static func cleanupAppliedActions(context: NSManagedObjectContext) async {
-        let fetchRequest: NSFetchRequest<ArticleAction> = ArticleAction.fetchRequest() as! NSFetchRequest<ArticleAction>
+        let fetchRequest: NSFetchRequest<ArticleAction> = ArticleAction.fetchRequest()
         do {
             let actions = try context.fetch(fetchRequest)
             for action in actions {
@@ -182,7 +204,7 @@ class ArticleActionSyncManager {
             }
             try context.save()
         } catch {
-            print("Failed to clean up applied actions: \(error)")
+            // Handle error silently
         }
     }
 } 

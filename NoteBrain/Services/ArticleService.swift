@@ -16,17 +16,22 @@ class ArticleService {
         // Save to Core Data
         await context.perform {
             for articleResponse in articles {
-                // Upsert logic: fetch by id
+                // Check if article already exists by ID
                 let fetchRequest: NSFetchRequest<Article> = Article.fetchRequest()
                 fetchRequest.predicate = NSPredicate(format: "id == %lld", articleResponse.id)
                 fetchRequest.fetchLimit = 1
+                
                 let article: Article
                 if let existing = try? self.context.fetch(fetchRequest).first {
+                    // Update existing article
                     article = existing
                 } else {
+                    // Create new article
                     article = Article(context: self.context)
                     article.id = articleResponse.id
                 }
+                
+                // Update article properties
                 article.userId = articleResponse.userId
                 article.url = articleResponse.url
                 article.title = articleResponse.title
