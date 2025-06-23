@@ -24,6 +24,7 @@
         <attribute name="actionType" attributeType="String" defaultValueString=""/>
         <attribute name="articleId" attributeType="Integer 64" defaultValueString="0"/>
         <attribute name="timestamp" attributeType="Date" defaultDateTimeInterval="0"/>
+        <attribute name="url" optional="YES" attributeType="String"/>
     </entity>
     <entity name="InstallationConfig" representedClassName="InstallationConfig" syncable="YES" codeGenerationType="class">
         <attribute name="apiToken" optional="YES" attributeType="String"/>

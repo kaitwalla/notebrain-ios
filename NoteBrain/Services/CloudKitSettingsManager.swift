@@ -187,6 +187,15 @@ class CloudKitSettingsManager: ObservableObject {
         defaults.set(cleanApiToken, forKey: "APIToken")
         defaults.set(archivedRetentionDays, forKey: "ArchivedRetentionDays")
         
+        // Save WebView settings to UserDefaults for immediate persistence
+        defaults.set(fontSize, forKey: "WebViewFontSize")
+        defaults.set(fontFamily, forKey: "WebViewFontFamily")
+        defaults.set(textColor, forKey: "WebViewTextColor")
+        defaults.set(backgroundColor, forKey: "WebViewBackgroundColor")
+        defaults.set(lineHeight, forKey: "WebViewLineHeight")
+        defaults.set(darkModeOption.rawValue, forKey: "WebViewUseDarkMode")
+        defaults.set(paragraphSpacing, forKey: "WebViewParagraphSpacing")
+        
         let fetchRequest: NSFetchRequest<InstallationConfig> = InstallationConfig.fetchRequest()
         let config: InstallationConfig
         if let existing = try? viewContext.fetch(fetchRequest).first {
@@ -224,6 +233,17 @@ class CloudKitSettingsManager: ObservableObject {
         }
         
         paragraphSpacing = CGFloat(record["paragraphSpacing"] as? Double ?? 1.0)
+        
+        // Save to UserDefaults for immediate persistence
+        let defaults = UserDefaults.standard
+        defaults.set(fontSize, forKey: "WebViewFontSize")
+        defaults.set(fontFamily, forKey: "WebViewFontFamily")
+        defaults.set(textColor, forKey: "WebViewTextColor")
+        defaults.set(backgroundColor, forKey: "WebViewBackgroundColor")
+        defaults.set(lineHeight, forKey: "WebViewLineHeight")
+        defaults.set(darkModeOption.rawValue, forKey: "WebViewUseDarkMode")
+        defaults.set(paragraphSpacing, forKey: "WebViewParagraphSpacing")
+        
         syncToCoreData()
     }
     

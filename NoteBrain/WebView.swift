@@ -26,12 +26,15 @@ class WebViewSettings: ObservableObject {
     }
     
     private var cloudKitSettings: CloudKitSettingsManager?
+    private var isInitializingFromCloudKit = false
     
     init() {
+        // Load settings from UserDefaults immediately
+        loadSettingsFromUserDefaults()
+        
         // Defer CloudKit setup to avoid actor isolation issues during init
         Task { @MainActor in
             await setupCloudKitBindings()
-            loadSettings()
             // Force update to new defaults if old values are detected
             if textColor == "#222222" || backgroundColor == "#fafbfc" {
                 forceUpdateToNewDefaults()
@@ -39,11 +42,42 @@ class WebViewSettings: ObservableObject {
         }
     }
     
+    private func loadSettingsFromUserDefaults() {
+        let defaults = UserDefaults.standard
+        
+        // Load WebView settings from UserDefaults
+        fontSize = defaults.object(forKey: "WebViewFontSize") as? CGFloat ?? CGFloat(30)
+        fontFamily = defaults.string(forKey: "WebViewFontFamily") ?? "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+        textColor = defaults.string(forKey: "WebViewTextColor") ?? "#000000"
+        backgroundColor = defaults.string(forKey: "WebViewBackgroundColor") ?? "#ffffff"
+        lineHeight = defaults.object(forKey: "WebViewLineHeight") as? CGFloat ?? CGFloat(1.7)
+        
+        // Handle migration from old boolean useDarkMode to new string-based darkModeOption
+        if let oldDarkModeString = defaults.string(forKey: "WebViewUseDarkMode") {
+            // New format - already a string
+            darkModeOption = DarkModeOption(rawValue: oldDarkModeString) ?? .system
+        } else if defaults.object(forKey: "WebViewUseDarkMode") != nil {
+            // Old format - boolean value exists
+            let oldDarkModeBool = defaults.bool(forKey: "WebViewUseDarkMode")
+            darkModeOption = oldDarkModeBool ? .dark : .light
+            // Update UserDefaults to new format
+            defaults.set(darkModeOption.rawValue, forKey: "WebViewUseDarkMode")
+        } else {
+            // No value exists, use default
+            darkModeOption = .system
+        }
+        
+        paragraphSpacing = defaults.object(forKey: "WebViewParagraphSpacing") as? CGFloat ?? CGFloat(1.0)
+    }
+    
     private func setupCloudKitBindings() async {
         // Get CloudKit settings manager on main actor
         cloudKitSettings = CloudKitSettingsManager.shared
         
         guard let cloudKitSettings = cloudKitSettings else { return }
+        
+        // Set flag to prevent saving during initial load
+        isInitializingFromCloudKit = true
         
         // Bind CloudKit settings to this view model
         cloudKitSettings.$fontSize
@@ -66,6 +100,11 @@ class WebViewSettings: ObservableObject {
         
         cloudKitSettings.$paragraphSpacing
             .assign(to: &$paragraphSpacing)
+        
+        // Clear flag after a short delay to allow initial values to be set
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.isInitializingFromCloudKit = false
+        }
     }
     
     private func loadSettings() {
@@ -74,7 +113,20 @@ class WebViewSettings: ObservableObject {
     }
     
     private func saveSettings() {
-        // Use CloudKit settings manager for saving
+        // Don't save during initialization from CloudKit
+        guard !isInitializingFromCloudKit else { return }
+        
+        // Save to UserDefaults immediately for persistence
+        let defaults = UserDefaults.standard
+        defaults.set(fontSize, forKey: "WebViewFontSize")
+        defaults.set(fontFamily, forKey: "WebViewFontFamily")
+        defaults.set(textColor, forKey: "WebViewTextColor")
+        defaults.set(backgroundColor, forKey: "WebViewBackgroundColor")
+        defaults.set(lineHeight, forKey: "WebViewLineHeight")
+        defaults.set(darkModeOption.rawValue, forKey: "WebViewUseDarkMode")
+        defaults.set(paragraphSpacing, forKey: "WebViewParagraphSpacing")
+        
+        // Also save to CloudKit if available
         guard let cloudKitSettings = cloudKitSettings else { return }
         
         cloudKitSettings.fontSize = fontSize

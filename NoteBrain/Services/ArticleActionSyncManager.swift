@@ -151,6 +151,34 @@ class ArticleActionSyncManager {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         
+        // Add request body for "add" actions
+        if action.actionType == "add" {
+            var urlToAdd: String? = nil
+            if let actionUrl = action.value(forKey: "url") as? String, !actionUrl.isEmpty {
+                urlToAdd = actionUrl
+            } else {
+                // Fallback to looking up Article by articleId
+                let articleFetch: NSFetchRequest<Article> = Article.fetchRequest()
+                articleFetch.predicate = NSPredicate(format: "id == %lld", action.articleId)
+                articleFetch.fetchLimit = 1
+                let context = PersistenceController.shared.container.viewContext
+                if let article = try? context.fetch(articleFetch).first,
+                   let articleURL = article.url {
+                    urlToAdd = articleURL
+                }
+            }
+            if let urlToAdd = urlToAdd {
+                let requestBody = ["url": urlToAdd]
+                do {
+                    let jsonData = try JSONSerialization.data(withJSONObject: requestBody)
+                    request.httpBody = jsonData
+                    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                } catch {
+                    throw URLError(.badURL)
+                }
+            }
+        }
+        
         let (_, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse, (200..<300).contains(httpResponse.statusCode) else {
             throw URLError(.badServerResponse)

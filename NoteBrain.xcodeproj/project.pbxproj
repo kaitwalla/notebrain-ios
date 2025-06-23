@@ -385,7 +385,7 @@
 				CODE_SIGN_ENTITLEMENTS = NoteBrainShareExtension/NoteBrainShareExtension.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 1.1.5;
 				DEVELOPMENT_TEAM = PNKZN48WK4;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NoteBrainShareExtension/Info.plist;
@@ -396,7 +396,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = group.kait.dev.NoteBrain.NoteBrainShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -412,7 +412,7 @@
 				CODE_SIGN_ENTITLEMENTS = NoteBrainShareExtension/NoteBrainShareExtension.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 1.1.5;
 				DEVELOPMENT_TEAM = PNKZN48WK4;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NoteBrainShareExtension/Info.plist;
@@ -423,7 +423,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = group.kait.dev.NoteBrain.NoteBrainShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -441,7 +441,7 @@
 				CODE_SIGN_ENTITLEMENTS = NoteBrain/NoteBrain.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 1.1.5;
 				DEVELOPMENT_TEAM = PNKZN48WK4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -457,7 +457,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = group.kait.dev.NoteBrain;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -475,7 +475,7 @@
 				CODE_SIGN_ENTITLEMENTS = NoteBrain/NoteBrain.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 1.1.5;
 				DEVELOPMENT_TEAM = PNKZN48WK4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -491,7 +491,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = group.kait.dev.NoteBrain;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

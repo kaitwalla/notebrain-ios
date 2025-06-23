@@ -14,6 +14,7 @@ struct NoteBrainApp: App {
     @StateObject private var configViewModel = InstallationConfigViewModel()
     @StateObject private var webViewSettings = WebViewSettings()
     @StateObject private var cloudKitSettings = CloudKitSettingsManager.shared
+    @StateObject private var sharedURLProcessor = SharedURLProcessor.shared
 
     var body: some Scene {
         WindowGroup {
@@ -35,6 +36,10 @@ struct NoteBrainApp: App {
             .task {
                 // Perform migration from existing data sources
                 await cloudKitSettings.migrateFromCoreDataAndUserDefaults()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                // Check for shared URLs when app becomes active
+                sharedURLProcessor.checkForSharedURLs()
             }
         }
     }
