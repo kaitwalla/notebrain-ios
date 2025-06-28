@@ -17,6 +17,8 @@ struct PersistenceController {
     static let preview: PersistenceController = {
         let result = PersistenceController(inMemory: true)
         let viewContext = result.container.viewContext
+        let logger = Logger(subsystem: "kait.dev.NoteBrain", category: "Persistence")
+        
         for _ in 0..<10 {
             let newItem = Item(context: viewContext)
             newItem.timestamp = Date()
@@ -27,7 +29,8 @@ struct PersistenceController {
             // Replace this implementation with code to handle the error appropriately.
             // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
             let nsError = error as NSError
-            fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+            logger.error("Preview context save failed: \(nsError.localizedDescription)")
+            // Don't crash, just log the error
         }
         return result
     }()
@@ -71,7 +74,8 @@ struct PersistenceController {
                  Check the error message to determine what the actual problem was.
                  */
                 logger.error("Core Data store loading failed: \(error.localizedDescription)")
-                fatalError("Unresolved error \(error), \(error.userInfo)")
+                // Don't crash, just log the error and continue
+                // The app can still function with limited features
             } else {
                 logger.info("Core Data store loaded successfully with CloudKit sync")
             }

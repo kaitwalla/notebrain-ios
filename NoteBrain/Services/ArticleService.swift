@@ -11,65 +11,69 @@ class ArticleService {
     }
     
     func fetchArticles() async throws {
+        // Fetch articles from API
         let articles: [ArticleResponse] = try await apiService.fetch("/api/articles")
         
         // Save to Core Data
-        await context.perform {
-            // First, get all existing article IDs to avoid duplicates
-            let existingFetchRequest: NSFetchRequest<Article> = Article.fetchRequest()
-            let existingArticles = (try? self.context.fetch(existingFetchRequest)) ?? []
-            let existingIds = Set(existingArticles.map { $0.id })
-            
-            for articleResponse in articles {
-                // Check if article already exists by ID
-                let fetchRequest: NSFetchRequest<Article> = Article.fetchRequest()
-                fetchRequest.predicate = NSPredicate(format: "id == %lld", articleResponse.id)
-                fetchRequest.fetchLimit = 1
+        try await context.perform {
+            do {
+                // First, get all existing article IDs to avoid duplicates
+                let existingFetchRequest: NSFetchRequest<Article> = Article.fetchRequest()
+                let existingArticles = (try? self.context.fetch(existingFetchRequest)) ?? []
+                let existingIds = Set(existingArticles.map { $0.id })
                 
-                let article: Article
-                if let existing = try? self.context.fetch(fetchRequest).first {
-                    // Update existing article
-                    article = existing
-                } else {
-                    // Create new article only if it doesn't already exist
-                    if !existingIds.contains(articleResponse.id) {
-                        article = Article(context: self.context)
-                        article.id = articleResponse.id
+                for articleResponse in articles {
+                    // Check if article already exists by ID
+                    let fetchRequest: NSFetchRequest<Article> = Article.fetchRequest()
+                    fetchRequest.predicate = NSPredicate(format: "id == %lld", articleResponse.id)
+                    fetchRequest.fetchLimit = 1
+                    
+                    let article: Article
+                    if let existing = try? self.context.fetch(fetchRequest).first {
+                        // Update existing article
+                        article = existing
                     } else {
-                        // Skip this article as it already exists
-                        continue
+                        // Create new article only if it doesn't already exist
+                        if !existingIds.contains(articleResponse.id) {
+                            article = Article(context: self.context)
+                            article.id = articleResponse.id
+                        } else {
+                            // Skip this article as it already exists
+                            continue
+                        }
                     }
+                    
+                    // Update article properties
+                    article.userId = articleResponse.userId
+                    article.url = articleResponse.url
+                    article.title = articleResponse.title
+                    article.content = articleResponse.content
+                    article.summary = articleResponse.summary
+                    article.contentMarkdown = articleResponse.contentMarkdown
+                    article.summaryMarkdown = articleResponse.summaryMarkdown
+                    article.excerpt = articleResponse.excerpt
+                    article.googleDriveFileId = articleResponse.googleDriveFileId
+                    article.featuredImage = articleResponse.featuredImage
+                    article.author = articleResponse.author
+                    article.siteName = articleResponse.siteName
+                    article.status = articleResponse.status
+                    article.starred = articleResponse.starred
+                    article.readAt = articleResponse.readAt
+                    article.archivedAt = articleResponse.archivedAt
+                    article.summarizedAt = articleResponse.summarizedAt
+                    article.createdAt = articleResponse.createdAt
+                    article.updatedAt = articleResponse.updatedAt
                 }
                 
-                // Update article properties
-                article.userId = articleResponse.userId
-                article.url = articleResponse.url
-                article.title = articleResponse.title
-                article.content = articleResponse.content
-                article.excerpt = articleResponse.excerpt
-                article.googleDriveFileId = articleResponse.googleDriveFileId
-                article.featuredImage = articleResponse.featuredImage
-                article.author = articleResponse.author
-                article.siteName = articleResponse.siteName
-                article.status = articleResponse.status
-                article.starred = articleResponse.starred
-                article.readAt = articleResponse.readAt
-                article.archivedAt = articleResponse.archivedAt
-                article.summarizedAt = articleResponse.summarizedAt
-                article.summary = articleResponse.summary
-                article.createdAt = articleResponse.createdAt
-                article.updatedAt = articleResponse.updatedAt
-            }
-            
-            // Save all changes at once
-            if self.context.hasChanges {
-                do {
+                // Save all changes at once
+                if self.context.hasChanges {
                     try self.context.save()
-                } catch {
-                    // Try to rollback and save again
-                    self.context.rollback()
-                    try? self.context.save()
                 }
+            } catch {
+                print("Error saving articles to Core Data: \(error.localizedDescription)")
+                // Try to rollback and continue
+                self.context.rollback()
+                throw error
             }
         }
     }
@@ -104,7 +108,9 @@ struct ArticleResponse: Codable {
     let url: String
     let title: String
     let content: String
+    let contentMarkdown: String?
     let excerpt: String?
+    let excerptMarkdown: String?
     let googleDriveFileId: String?
     let featuredImage: String?
     let author: String?
@@ -115,6 +121,7 @@ struct ArticleResponse: Codable {
     let archivedAt: Date?
     let summarizedAt: Date?
     let summary: String?
+    let summaryMarkdown: String?
     let createdAt: Date?
     let updatedAt: Date?
     
@@ -124,7 +131,9 @@ struct ArticleResponse: Codable {
         case url
         case title
         case content
+        case contentMarkdown = "content_markdown"
         case excerpt
+        case excerptMarkdown = "excerpt_markdown"
         case googleDriveFileId = "google_drive_file_id"
         case featuredImage = "featured_image"
         case author
@@ -135,6 +144,7 @@ struct ArticleResponse: Codable {
         case archivedAt = "archived_at"
         case summarizedAt = "summarized_at"
         case summary
+        case summaryMarkdown = "summary_markdown"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
@@ -147,7 +157,9 @@ struct ArticleResponse: Codable {
         url = try container.decode(String.self, forKey: .url)
         title = try container.decode(String.self, forKey: .title)
         content = try container.decode(String.self, forKey: .content)
+        contentMarkdown = try container.decodeIfPresent(String.self, forKey: .contentMarkdown)
         excerpt = try container.decodeIfPresent(String.self, forKey: .excerpt)
+        excerptMarkdown = try container.decodeIfPresent(String.self, forKey: .excerptMarkdown)
         googleDriveFileId = try container.decodeIfPresent(String.self, forKey: .googleDriveFileId)
         featuredImage = try container.decodeIfPresent(String.self, forKey: .featuredImage)
         author = try container.decodeIfPresent(String.self, forKey: .author)
@@ -155,7 +167,6 @@ struct ArticleResponse: Codable {
         status = try container.decode(String.self, forKey: .status)
         starred = try container.decode(Bool.self, forKey: .starred)
         
-        // Handle date fields with custom decoding
         let dateFormatter = ISO8601DateFormatter()
         dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         
@@ -178,6 +189,7 @@ struct ArticleResponse: Codable {
         }
         
         summary = try container.decodeIfPresent(String.self, forKey: .summary)
+        summaryMarkdown = try container.decodeIfPresent(String.self, forKey: .summaryMarkdown)
         
         if let createdAtString = try container.decodeIfPresent(String.self, forKey: .createdAt) {
             createdAt = dateFormatter.date(from: createdAtString)

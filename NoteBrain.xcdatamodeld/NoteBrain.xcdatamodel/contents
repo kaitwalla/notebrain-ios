@@ -1,18 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23788.4" systemVersion="24F74" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
-    <entity name="AppSettings" representedClassName="AppSettings" syncable="YES" codeGenerationType="class">
-        <attribute name="apiToken" optional="YES" attributeType="String"/>
-        <attribute name="archivedRetentionDays" optional="YES" attributeType="Integer 32" defaultValueString="30" usesScalarValueType="YES"/>
-        <attribute name="backgroundColor" optional="YES" attributeType="String" defaultValueString="#ffffff"/>
-        <attribute name="fontFamily" optional="YES" attributeType="String" defaultValueString="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"/>
-        <attribute name="fontSize" optional="YES" attributeType="Double" defaultValueString="30" usesScalarValueType="YES"/>
-        <attribute name="installationURL" optional="YES" attributeType="String"/>
-        <attribute name="lastModified" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="lineHeight" optional="YES" attributeType="Double" defaultValueString="1.7" usesScalarValueType="YES"/>
-        <attribute name="paragraphSpacing" optional="YES" attributeType="Double" defaultValueString="1.0" usesScalarValueType="YES"/>
-        <attribute name="textColor" optional="YES" attributeType="String" defaultValueString="#000000"/>
-        <attribute name="useDarkMode" optional="YES" attributeType="String" defaultValueString="system"/>
-    </entity>
     <entity name="Article" representedClassName="Article" syncable="YES" codeGenerationType="class">
         <attribute name="archivedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="author" optional="YES" attributeType="String"/>
@@ -36,17 +23,9 @@
         <attribute name="userId" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
     </entity>
     <entity name="ArticleAction" representedClassName="ArticleAction" syncable="YES" codeGenerationType="class">
-        <attribute name="actionType" attributeType="String" defaultValueString=""/>
-        <attribute name="articleId" attributeType="Integer 64" defaultValueString="0"/>
-        <attribute name="timestamp" attributeType="Date" defaultDateTimeInterval="0"/>
+        <attribute name="actionType" attributeType="String"/>
+        <attribute name="articleId" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="timestamp" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="url" optional="YES" attributeType="String"/>
     </entity>
-    <entity name="InstallationConfig" representedClassName="InstallationConfig" syncable="YES" codeGenerationType="class">
-        <attribute name="apiToken" optional="YES" attributeType="String"/>
-        <attribute name="archivedRetentionDays" optional="YES" attributeType="Integer 32" defaultValueString="30"/>
-        <attribute name="installationURL" optional="YES" attributeType="String"/>
-    </entity>
-    <entity name="Item" representedClassName="Item" syncable="YES" codeGenerationType="class">
-        <attribute name="timestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
-    </entity>
-</model>
+</model> 

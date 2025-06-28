@@ -26,11 +26,11 @@ class CloudKitSettingsManager: ObservableObject {
     @Published var installationURL: String = ""
     @Published var apiToken: String = ""
     @Published var archivedRetentionDays: Int = 30
-    @Published var fontSize: CGFloat = 30
+    @Published var fontSize: CGFloat = 24
     @Published var fontFamily: String = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
     @Published var textColor: String = "#000000"
     @Published var backgroundColor: String = "#ffffff"
-    @Published var lineHeight: CGFloat = 1.7
+    @Published var lineHeight: CGFloat = 1.5
     @Published var darkModeOption: DarkModeOption = .system
     @Published var paragraphSpacing: CGFloat = 1.0
     @Published var isConfigured: Bool = false
@@ -196,17 +196,26 @@ class CloudKitSettingsManager: ObservableObject {
         defaults.set(darkModeOption.rawValue, forKey: "WebViewUseDarkMode")
         defaults.set(paragraphSpacing, forKey: "WebViewParagraphSpacing")
         
-        let fetchRequest: NSFetchRequest<InstallationConfig> = InstallationConfig.fetchRequest()
-        let config: InstallationConfig
-        if let existing = try? viewContext.fetch(fetchRequest).first {
-            config = existing
-        } else {
-            config = InstallationConfig(context: viewContext)
+        viewContext.perform {
+            let fetchRequest: NSFetchRequest<InstallationConfig> = InstallationConfig.fetchRequest()
+            let config: InstallationConfig
+            if let existing = try? self.viewContext.fetch(fetchRequest).first {
+                config = existing
+            } else {
+                config = InstallationConfig(context: self.viewContext)
+            }
+            config.installationURL = self.installationURL
+            config.apiToken = cleanApiToken
+            config.archivedRetentionDays = Int32(self.archivedRetentionDays)
+            
+            do {
+                try self.viewContext.save()
+            } catch {
+                self.logger.error("Failed to save to Core Data: \(error.localizedDescription)")
+                // Try to rollback and continue
+                self.viewContext.rollback()
+            }
         }
-        config.installationURL = self.installationURL
-        config.apiToken = cleanApiToken
-        config.archivedRetentionDays = Int32(self.archivedRetentionDays)
-        try? viewContext.save()
     }
     
     private func updateFromRecord(_ record: CKRecord) async {

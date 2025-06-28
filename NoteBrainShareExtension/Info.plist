@@ -21,5 +21,9 @@
 		<key>NSExtensionPointIdentifier</key>
 		<string>com.apple.share-services</string>
 	</dict>
+	<key>CFBundleResources</key>
+	<array>
+		<string>appicon.png</string>
+	</array>
 </dict>
 </plist>

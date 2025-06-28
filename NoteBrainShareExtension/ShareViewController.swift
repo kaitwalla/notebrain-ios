@@ -22,14 +22,30 @@ class ShareViewController: UIViewController {
         return label
     }()
     
+    private let appIconImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.image = UIImage(named: "appicon")
+        imageView.contentMode = .scaleAspectFit
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.clipsToBounds = true
+        imageView.layer.cornerRadius = 24 // Rounded corners for aesthetics
+        return imageView
+    }()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
+        view.addSubview(appIconImageView)
         view.addSubview(urlLabel)
         NSLayoutConstraint.activate([
-            urlLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            urlLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            urlLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+            appIconImageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            appIconImageView.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -60),
+            appIconImageView.widthAnchor.constraint(equalToConstant: 96),
+            appIconImageView.heightAnchor.constraint(equalToConstant: 96),
+            urlLabel.topAnchor.constraint(equalTo: appIconImageView.bottomAnchor, constant: 24),
+            urlLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
+            urlLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
+            urlLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor)
         ])
         processSharedContent()
     }
@@ -75,12 +91,13 @@ class ShareViewController: UIViewController {
         group.notify(queue: .main) {
             if !urlsToProcess.isEmpty {
                 self.saveURLsToSharedDefaults(urlsToProcess)
-                self.urlLabel.text = "Shared URL(s):\n" + urlsToProcess.joined(separator: "\n")
+                self.urlLabel.text = "Shared!"
             } else {
                 self.urlLabel.text = "No URL found to share."
             }
             // Show the label for 2 seconds before dismissing
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                self.urlLabel.text = "" // Remove the URL after sharing
                 self.dismissExtension()
             }
         }

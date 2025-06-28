@@ -34,30 +34,37 @@ class ArticleActionSyncManager {
     
     deinit {
         syncTimer?.invalidate()
+        syncTimer = nil
+        monitor.cancel()
     }
     
     func triggerSync() {
-        guard !isSyncing && !isClearingAndRedownloading else { return }
+        guard !isSyncing && !isClearingAndRedownloading else { 
+            print("Sync already in progress or clearing in progress, skipping")
+            return 
+        }
+        
         isSyncing = true
         Task {
-            // Check what types of actions we have before syncing
-            let actions = Self.fetchPendingActions(context: context)
-            let hasNonSummarizeActions = actions.contains { $0.actionType != "summarize" }
-            
-            await Self.syncActions(context: context)
-            
-            // Only fetch articles if there were actions that might have changed article state
-            // and we're not in the middle of clearing and redownloading
-            if hasNonSummarizeActions && !isClearingAndRedownloading {
-                let articleService = ArticleService(context: context)
-                do {
+            do {
+                // Check what types of actions we have before syncing
+                let actions = Self.fetchPendingActions(context: context)
+                let hasNonSummarizeActions = actions.contains { $0.actionType != "summarize" }
+                
+                await Self.syncActions(context: context)
+                
+                // Only fetch articles if there were actions that might have changed article state
+                // and we're not in the middle of clearing and redownloading
+                if hasNonSummarizeActions && !isClearingAndRedownloading {
+                    let articleService = ArticleService(context: context)
                     try await articleService.fetchArticles()
-                } catch {
-                    // Handle error silently
                 }
+                // Clean up already-applied actions
+                await Self.cleanupAppliedActions(context: context)
+            } catch {
+                print("Sync error: \(error.localizedDescription)")
+                // Don't crash, just log the error
             }
-            // Clean up already-applied actions
-            await Self.cleanupAppliedActions(context: context)
             self.isSyncing = false
         }
     }
@@ -119,28 +126,35 @@ class ArticleActionSyncManager {
         let apiService = APIService(context: context)
         let actions = fetchPendingActions(context: context)
         let reconciled = reconcileActions(actions)
+        
         for action in reconciled {
             guard let endpoint = endpoint(for: action) else { continue }
             do {
                 try await postAction(to: endpoint, action: action, apiService: apiService)
             } catch {
-                // Handle error silently
+                print("Failed to sync action \(action.actionType ?? "unknown") for article \(action.articleId): \(error.localizedDescription)")
+                // Continue with other actions instead of failing completely
             }
         }
+        
         // Clear all ArticleAction objects after sync
-        let fetchRequest: NSFetchRequest<NSFetchRequestResult> = ArticleAction.fetchRequest()
-        let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
-        do {
-            try context.execute(deleteRequest)
-            try context.save()
-        } catch {
-            // Handle error silently
+        await context.perform {
+            let fetchRequest: NSFetchRequest<NSFetchRequestResult> = ArticleAction.fetchRequest()
+            let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+            do {
+                try context.execute(deleteRequest)
+                try context.save()
+            } catch {
+                print("Failed to cleanup ArticleActions: \(error.localizedDescription)")
+                // Try to rollback and continue
+                context.rollback()
+            }
         }
     }
     
     private static func postAction(to endpoint: String, action: ArticleAction, apiService: APIService) async throws {
         guard let baseURL = apiService.baseURL,
-              let url = URL(string: "\(baseURL)\(endpoint)") else {
+              let url = URL(string: baseURL + endpoint) else {
             throw URLError(.badURL)
         }
         
@@ -206,38 +220,58 @@ class ArticleActionSyncManager {
     
     // Clean up actions that have already been applied after a refresh
     private static func cleanupAppliedActions(context: NSManagedObjectContext) async {
-        let fetchRequest: NSFetchRequest<ArticleAction> = ArticleAction.fetchRequest()
-        do {
-            let actions = try context.fetch(fetchRequest)
-            for action in actions {
-                let articleFetch: NSFetchRequest<Article> = Article.fetchRequest()
-                articleFetch.predicate = NSPredicate(format: "id == %lld", action.articleId)
-                articleFetch.fetchLimit = 1
-                let article = try context.fetch(articleFetch).first
-                switch action.actionType {
-                case "summarize":
-                    if let article = article, let summary = article.summary, !summary.isEmpty {
-                        context.delete(action)
+        await context.perform {
+            let fetchRequest: NSFetchRequest<ArticleAction> = ArticleAction.fetchRequest()
+            do {
+                let actions = try context.fetch(fetchRequest)
+                var actionsToDelete: [ArticleAction] = []
+                
+                for action in actions {
+                    let articleFetch: NSFetchRequest<Article> = Article.fetchRequest()
+                    articleFetch.predicate = NSPredicate(format: "id == %lld", action.articleId)
+                    articleFetch.fetchLimit = 1
+                    
+                    do {
+                        let article = try context.fetch(articleFetch).first
+                        switch action.actionType {
+                        case "summarize":
+                            if let article = article, let summary = article.summary, !summary.isEmpty {
+                                actionsToDelete.append(action)
+                            }
+                        case "archive", "delete":
+                            if article == nil {
+                                actionsToDelete.append(action)
+                            }
+                        case "star":
+                            if let article = article, article.starred == true {
+                                actionsToDelete.append(action)
+                            }
+                        case "unstar":
+                            if let article = article, article.starred == false {
+                                actionsToDelete.append(action)
+                            }
+                        default:
+                            break
+                        }
+                    } catch {
+                        print("Error checking article for action cleanup: \(error.localizedDescription)")
+                        // Continue with other actions
                     }
-                case "archive", "delete":
-                    if article == nil {
-                        context.delete(action)
-                    }
-                case "star":
-                    if let article = article, article.starred == true {
-                        context.delete(action)
-                    }
-                case "unstar":
-                    if let article = article, article.starred == false {
-                        context.delete(action)
-                    }
-                default:
-                    break
                 }
+                
+                // Delete actions in batch
+                for action in actionsToDelete {
+                    context.delete(action)
+                }
+                
+                if !actionsToDelete.isEmpty {
+                    try context.save()
+                }
+            } catch {
+                print("Error during action cleanup: \(error.localizedDescription)")
+                // Try to rollback and continue
+                context.rollback()
             }
-            try context.save()
-        } catch {
-            // Handle error silently
         }
     }
     

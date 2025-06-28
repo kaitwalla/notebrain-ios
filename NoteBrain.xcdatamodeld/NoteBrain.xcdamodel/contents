@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22522" systemVersion="24C5" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="Article" representedClassName="Article" syncable="YES" codeGenerationType="class">
+        <attribute name="archivedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="author" optional="YES" attributeType="String"/>
+        <attribute name="content" attributeType="String" defaultValueString=""/>
+        <attribute name="contentMarkdown" optional="YES" attributeType="String"/>
+        <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="excerpt" optional="YES" attributeType="String"/>
+        <attribute name="featuredImage" optional="YES" attributeType="String"/>
+        <attribute name="googleDriveFileId" optional="YES" attributeType="String"/>
+        <attribute name="id" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="readAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="siteName" optional="YES" attributeType="String"/>
+        <attribute name="starred" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="status" attributeType="String" defaultValueString="inbox"/>
+        <attribute name="summarizedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="summary" optional="YES" attributeType="String"/>
+        <attribute name="summaryMarkdown" optional="YES" attributeType="String"/>
+        <attribute name="title" attributeType="String" defaultValueString=""/>
+        <attribute name="updatedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="url" attributeType="String" defaultValueString=""/>
+        <attribute name="userId" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+    </entity>
+    <entity name="ArticleAction" representedClassName="ArticleAction" syncable="YES" codeGenerationType="class">
+        <attribute name="actionType" attributeType="String"/>
+        <attribute name="articleId" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="timestamp" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="url" optional="YES" attributeType="String"/>
+    </entity>
+</model> 

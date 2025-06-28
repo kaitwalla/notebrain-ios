@@ -8,6 +8,7 @@ struct ArticleDetailView: View {
     @State private var isStarred: Bool
     @State private var selectedTab: Int = 0 // 0: Summary, 1: Full Article
     @State private var isSummarizing: Bool = false
+    @State private var showSettingsSheet: Bool = false
     
     // Observe pending summarize actions for this article (only in non-preview mode)
     @FetchRequest private var pendingSummarizeActions: FetchedResults<ArticleAction>
@@ -39,30 +40,34 @@ struct ArticleDetailView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(article.title ?? "")
-                .font(.title)
-                .padding([.top, .horizontal])
-            Divider()
-            if let summary = article.summary, !summary.isEmpty {
-                Picker("View", selection: $selectedTab) {
-                    Text("Summary").tag(0)
-                    Text("Full Article").tag(1)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(article.title ?? "")
+                        .font(.title)
+                        .padding([.top, .horizontal])
+                    Divider()
+                    if let summary = article.summary, !summary.isEmpty {
+                        Picker("View", selection: $selectedTab) {
+                            Text("Summary").tag(0)
+                            Text("Full Article").tag(1)
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                        .padding([.horizontal, .bottom])
+                        if selectedTab == 0 {
+                            MarkdownTextView(markdown: article.summaryMarkdown ?? summary)
+                                .environmentObject(webViewSettings)
+                                .frame(maxWidth: .infinity, minHeight: 400)
+                        } else {
+                            MarkdownTextView(markdown: article.contentMarkdown ?? (article.content ?? ""))
+                                .environmentObject(webViewSettings)
+                                .frame(maxWidth: .infinity, minHeight: 400)
+                        }
+                    } else {
+                        MarkdownTextView(markdown: article.contentMarkdown ?? (article.content ?? ""))
+                            .environmentObject(webViewSettings)
+                            .frame(maxWidth: .infinity, minHeight: 400)
+                    }
                 }
-                .pickerStyle(SegmentedPickerStyle())
-                .padding([.horizontal, .bottom])
-                if selectedTab == 0 {
-                    WebView(htmlContent: summary)
-                        .environmentObject(webViewSettings)
-                        .frame(maxWidth: .infinity, minHeight: 400)
-                } else {
-                    WebView(htmlContent: article.content ?? "")
-                        .environmentObject(webViewSettings)
-                        .frame(maxWidth: .infinity, minHeight: 400)
-                }
-            } else {
-                WebView(htmlContent: article.content ?? "")
-                    .environmentObject(webViewSettings)
-                    .frame(maxWidth: .infinity, minHeight: 400)
             }
             Divider()
             HStack {
@@ -108,6 +113,28 @@ struct ArticleDetailView: View {
         }
         .navigationTitle("Article")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: { showSettingsSheet = true }) {
+                    Image(systemName: "textformat.size")
+                }
+            }
+        }
+        .sheet(isPresented: $showSettingsSheet) {
+            NavigationView {
+                ArticleViewSettingsView()
+                    .environmentObject(webViewSettings)
+                    .navigationTitle("Article View Settings")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("Done") {
+                                showSettingsSheet = false
+                            }
+                        }
+                    }
+            }
+        }
     }
     
     private func toggleStar() {

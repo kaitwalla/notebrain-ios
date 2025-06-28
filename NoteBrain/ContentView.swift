@@ -262,6 +262,7 @@ struct ContentView: View {
         }
         .onDisappear {
             summarizePollingTask?.cancel()
+            summarizePollingTask = nil
         }
         .overlay(
             // Show processing indicator when shared URLs are being processed
@@ -432,40 +433,66 @@ struct ContentView: View {
         summarizePollingTask?.cancel()
         summarizePollingTask = Task {
             var pollingStartTimes: [Int64: Date] = [:]
+            var consecutiveErrors = 0
+            let maxConsecutiveErrors = 3
+            
             while !Task.isCancelled {
-                let summarizeActions = fetchPendingSummarizeActions()
-                
-                // Only proceed if there are actually pending summarize actions
-                if !summarizeActions.isEmpty {
-                    let now = Date()
-                    for action in summarizeActions {
-                        let articleId = action.articleId
-                        if pollingStartTimes[articleId] == nil {
-                            pollingStartTimes[articleId] = now
-                        }
-                        // Only poll for up to 1 minute per article
-                        if let start = pollingStartTimes[articleId], now.timeIntervalSince(start) > 60 {
-                            continue
-                        }
-                    }
+                do {
+                    let summarizeActions = fetchPendingSummarizeActions()
                     
-                    // Only fetch articles if we have active polling
-                    let activeActions = summarizeActions.filter { action in
-                        let start = pollingStartTimes[action.articleId] ?? now
-                        return now.timeIntervalSince(start) <= 60
-                    }
-                    
-                    if !activeActions.isEmpty {
-                        do {
+                    // Only proceed if there are actually pending summarize actions
+                    if !summarizeActions.isEmpty {
+                        let now = Date()
+                        
+                        // Clean up old polling start times (older than 2 minutes)
+                        pollingStartTimes = pollingStartTimes.filter { _, startTime in
+                            now.timeIntervalSince(startTime) <= 120
+                        }
+                        
+                        for action in summarizeActions {
+                            let articleId = action.articleId
+                            if pollingStartTimes[articleId] == nil {
+                                pollingStartTimes[articleId] = now
+                            }
+                            // Only poll for up to 1 minute per article
+                            if let start = pollingStartTimes[articleId], now.timeIntervalSince(start) > 60 {
+                                continue
+                            }
+                        }
+                        
+                        // Only fetch articles if we have active polling
+                        let activeActions = summarizeActions.filter { action in
+                            let start = pollingStartTimes[action.articleId] ?? now
+                            return now.timeIntervalSince(start) <= 60
+                        }
+                        
+                        if !activeActions.isEmpty {
                             let service = ArticleService(context: viewContext)
                             try await service.fetchArticles()
-                        } catch {
-                            // Handle error silently
+                            consecutiveErrors = 0 // Reset error count on success
                         }
+                    } else {
+                        // No pending actions, reset error count
+                        consecutiveErrors = 0
+                    }
+                } catch {
+                    consecutiveErrors += 1
+                    print("Summarize polling error: \(error.localizedDescription)")
+                    
+                    // Stop polling if we have too many consecutive errors
+                    if consecutiveErrors >= maxConsecutiveErrors {
+                        print("Too many consecutive errors, stopping summarize polling")
+                        break
                     }
                 }
                 
-                try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
+                // Use Task.sleep with proper cancellation handling
+                do {
+                    try await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
+                } catch {
+                    // Task was cancelled
+                    break
+                }
             }
         }
     }
